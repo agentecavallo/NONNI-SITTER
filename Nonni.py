@@ -1,58 +1,102 @@
 import streamlit as st
+import json
+import os
 
-# 1. IMPOSTAZIONI DELLA PAGINA (Per renderla perfetta sul cellulare)
+# 1. IMPOSTAZIONI INIZIALI
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-# Titolo e istruzioni per i nonni
+FILE_MEMORIA = "programma.json"
+
+# Le nostre opzioni (puoi aggiungerne altre qui se serve in futuro!)
+OPZIONI_CHI = ["🔴 TOCCA AI NONNI", "🟢 FACCIAMO NOI GENITORI"]
+OPZIONI_ATTIVITA = [
+    "Scuola 🏫", 
+    "Ginnastica Artistica 🤸‍♀️", 
+    "Eufonio 🎺", 
+    "Yoga 🧘‍♂️", 
+    "Casa 🏠"
+]
+
+# 2. FUNZIONI PER LA MEMORIA DELL'APP (Leggere e Salvare)
+def carica_programma():
+    # Se il file esiste, lo legge
+    if os.path.exists(FILE_MEMORIA):
+        with open(FILE_MEMORIA, "r", encoding="utf-8") as file:
+            return json.load(file)
+    else:
+        # Se non esiste (la prima volta), crea una settimana base
+        settimana_base = {}
+        giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
+        for giorno in giorni:
+            settimana_base[giorno] = {
+                "mattina": {"chi": "🔴 TOCCA AI NONNI", "cosa": "Scuola 🏫"},
+                "pomeriggio": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Casa 🏠"}
+            }
+        return settimana_base
+
+def salva_programma(dati):
+    # Scrive le modifiche nel file
+    with open(FILE_MEMORIA, "w", encoding="utf-8") as file:
+        json.dump(dati, file, indent=4)
+
+# Carichiamo i dati all'avvio
+programma = carica_programma()
+
+
+# ==========================================
+# 3. LA BARRA LATERALE (SOLO PER VOI GENITORI)
+# ==========================================
+with st.sidebar:
+    st.title("⚙️ Pannello Genitori")
+    st.write("Modificate qui la giornata. I nonni vedranno l'aggiornamento in automatico!")
+    st.markdown("---")
+    
+    # Scegliete quale giorno modificare
+    giorno_scelto = st.selectbox("📅 Scegli il giorno da modificare:", list(programma.keys()))
+    
+    st.subheader("☀️ Mattina")
+    chi_mat = st.selectbox("Chi fa il taxi la mattina?", OPZIONI_CHI, index=OPZIONI_CHI.index(programma[giorno_scelto]["mattina"]["chi"]))
+    cosa_mat = st.selectbox("Dove vanno la mattina?", OPZIONI_ATTIVITA, index=OPZIONI_ATTIVITA.index(programma[giorno_scelto]["mattina"]["cosa"]))
+    
+    st.subheader("🌙 Pomeriggio")
+    chi_pom = st.selectbox("Chi fa il taxi il pomeriggio?", OPZIONI_CHI, index=OPZIONI_CHI.index(programma[giorno_scelto]["pomeriggio"]["chi"]))
+    cosa_pom = st.selectbox("Dove vanno il pomeriggio?", OPZIONI_ATTIVITA, index=OPZIONI_ATTIVITA.index(programma[giorno_scelto]["pomeriggio"]["cosa"]))
+    
+    st.markdown("---")
+    # Il pulsante per salvare
+    if st.button("💾 SALVA MODIFICHE", use_container_width=True):
+        programma[giorno_scelto]["mattina"]["chi"] = chi_mat
+        programma[giorno_scelto]["mattina"]["cosa"] = cosa_mat
+        programma[giorno_scelto]["pomeriggio"]["chi"] = chi_pom
+        programma[giorno_scelto]["pomeriggio"]["cosa"] = cosa_pom
+        
+        salva_programma(programma)
+        st.success(f"✅ {giorno_scelto} aggiornato!")
+
+
+# ==========================================
+# 4. LA SCHERMATA PRINCIPALE (PER I NONNI)
+# ==========================================
 st.title("🚕 Il Taxi dei Nipoti")
-st.write("Ecco il programma di questa settimana! Fate attenzione ai colori:")
-st.success("🟢 VERDE: Facciamo noi genitori (Potete riposare!)")
-st.error("🔴 ROSSO: Nonni, tocca a voi! Grazie ❤️")
+st.write("Programma della settimana. Fate attenzione ai colori!")
 st.markdown("---")
 
-# 2. DATI DELLA SETTIMANA (MODIFICATE QUI OGNI DOMENICA)
-# Istruzioni: 
-# Alla voce "chi" scrivete "nonni" per far apparire il riquadro ROSSO, 
-# oppure scrivete "genitori" per far apparire il riquadro VERDE.
-
-giorni = {
-    "Lunedì": [
-        {"orario": "08:00 - Mattina", "azione": "Prendere a CASA e portare a SCUOLA 🏫", "chi": "nonni"},
-        {"orario": "16:30 - Pomeriggio", "azione": "Prendere a SCUOLA e portare a GINNASTICA 🤸‍♀️", "chi": "genitori"}
-    ],
-    "Martedì": [
-        {"orario": "08:00 - Mattina", "azione": "Andiamo noi a scuola", "chi": "genitori"},
-        {"orario": "16:00 - Pomeriggio", "azione": "Prendere a SCUOLA e portare a MUSICA 🎵", "chi": "nonni"}
-    ],
-    "Mercoledì": [
-        {"orario": "08:00 - Mattina", "azione": "Prendere a CASA e portare a SCUOLA 🏫", "chi": "nonni"},
-        {"orario": "17:00 - Pomeriggio", "azione": "Prendere a SCUOLA e portare a YOGA 🧘‍♂️", "chi": "nonni"}
-    ],
-    "Giovedì": [
-        {"orario": "08:00 - Mattina", "azione": "Andiamo noi a scuola", "chi": "genitori"},
-        {"orario": "16:30 - Pomeriggio", "azione": "Riposo a casa 🏠", "chi": "genitori"}
-    ],
-    "Venerdì": [
-         {"orario": "08:00 - Mattina", "azione": "Prendere a CASA e portare a SCUOLA 🏫", "chi": "nonni"},
-         {"orario": "13:30 - Pomeriggio", "azione": "Uscita anticipata! Prendere a SCUOLA e portare a CASA dai nonni 🍝", "chi": "nonni"}
-    ]
-}
-
-# 3. CREAZIONE DELL'INTERFACCIA VISIVA (Non serve toccare questo codice)
-for giorno, impegni in giorni.items():
-    # Crea un titolo grande per il giorno
+# Disegniamo i bottononi colorati leggendo dalla memoria
+for giorno, impegni in programma.items():
     st.header(f"📅 {giorno}")
     
-    # Crea i riquadri per mattina e pomeriggio
-    for impegno in impegni:
-        testo_da_mostrare = f"**{impegno['orario']}** \n\n {impegno['azione']}"
+    # --- MATTINA ---
+    testo_mattina = f"**☀️ MATTINA:** {impegni['mattina']['cosa']}"
+    if "NONNI" in impegni['mattina']['chi']:
+        st.error("🔴 TOCCA AI NONNI \n\n" + testo_mattina)
+    else:
+        st.success("🟢 FACCIAMO NOI \n\n" + testo_mattina)
         
-        if impegno["chi"] == "nonni":
-            # Crea un blocco ROSSO/ARANCIO gigante
-            st.error("🔴 TOCCA AI NONNI \n\n" + testo_da_mostrare)
-        else:
-            # Crea un blocco VERDE gigante
-            st.success("🟢 FACCIAMO NOI \n\n" + testo_da_mostrare)
-            
-    # Riga di separazione visiva
+    # --- POMERIGGIO ---
+    testo_pomeriggio = f"**🌙 POMERIGGIO:** {impegni['pomeriggio']['cosa']}"
+    if "NONNI" in impegni['pomeriggio']['chi']:
+        st.error("🔴 TOCCA AI NONNI \n\n" + testo_pomeriggio)
+    else:
+        st.success("🟢 FACCIAMO NOI \n\n" + testo_pomeriggio)
+        
     st.markdown("---")
