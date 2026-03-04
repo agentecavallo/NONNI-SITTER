@@ -6,30 +6,34 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v3.json"
-OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
+FILE_MEMORIA = "programma_v3.json" # Aggiornato per riflettere la nuova logica semplificata
+OPZIONI_CHI = ["🔴 TOCCA AI NONNI", "🟢 FACCIAMO NOI GENITORI"]
 OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Casa 🏠"]
 
-# --- FUNZIONI CORE ---
+# --- FUNZIONE CALENDARIO ---
 def ottieni_calendario():
     oggi = datetime.now().date()
     lunedi_curr = oggi - timedelta(days=oggi.weekday())
     lunedi_next = lunedi_curr + timedelta(days=7)
-    mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]
     
-    def formatta(base):
-        giorni_nomi = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
-        return {giorni_nomi[i]: {
-            "data_testo": f"{giorni_nomi[i]} {(base + timedelta(days=i)).day} {mesi[(base + timedelta(days=i)).month-1]} {(base + timedelta(days=i)).year}",
-            "data_obj": base + timedelta(days=i)
-        } for i in range(5)}
+    nomi_giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
+    mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", 
+            "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]
     
-    return {"corrente": formatta(lunedi_curr), "prossima": formatta(lunedi_next), "oggi_obj": oggi}
+    def formatta_settimana(lunedi_base):
+        sett = {}
+        for i, nome in enumerate(nomi_giorni):
+            d = lunedi_base + timedelta(days=i)
+            sett[nome] = {"data_testo": f"{nome} {d.day} {mesi[d.month-1]} {d.year}", "data_obj": d}
+        return sett
 
+    return {"corrente": formatta_settimana(lunedi_curr), "prossima": formatta_settimana(lunedi_next), "oggi_obj": oggi}
+
+# 2. GESTIONE MEMORIA
 def crea_struttura_vuota():
     def sett_vuota():
         return {g: {
-            "mattina": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Scuola 🏫"},
+            "mattina": {"chi": "🔴 TOCCA AI NONNI", "cosa": "Scuola 🏫"}, # "cosa" ora è fisso
             "sara_uguale": True,
             "pomeriggio_leo": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Casa 🏠", "inizio": "16:30", "fine": "18:00"},
             "pomeriggio_sara": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Casa 🏠", "inizio": "16:30", "fine": "18:00"}
@@ -39,107 +43,107 @@ def crea_struttura_vuota():
 def carica_programma():
     if os.path.exists(FILE_MEMORIA):
         try:
-            with open(FILE_MEMORIA, "r", encoding="utf-8") as file: return json.load(file)
+            with open(FILE_MEMORIA, "r", encoding="utf-8") as file:
+                return json.load(file)
         except: return crea_struttura_vuota()
     return crea_struttura_vuota()
 
-def salva_programma():
+def salva_programma(dati):
     with open(FILE_MEMORIA, "w", encoding="utf-8") as file:
-        json.dump(st.session_state.programma, file, indent=4)
-
-# Inizializzazione dati nella sessione (per evitare reset continui)
-if "programma" not in st.session_state:
-    st.session_state.programma = carica_programma()
+        json.dump(dati, file, indent=4)
 
 cal = ottieni_calendario()
+programma = carica_programma()
 
 # ==========================================
-# 3. INTERFACCIA
+# 3. INTERFACCIA (TABS)
 # ==========================================
 sch_nonni, sch_genitori = st.tabs(["🚕 Vista Nonni", "⚙️ Pannello Genitori"])
 
-# --- VISTA NONNI ---
+# --- VISTA NONNI (Invariata, mostra sempre Scuola la mattina) ---
 with sch_nonni:
     st.title("🚕 Il Taxi dei Nipoti")
     st.markdown("---")
+    mostrati = 0
     per_nonni = [("corrente", cal["corrente"]), ("prossima", cal["prossima"])]
+    
     for id_sett, giorni in per_nonni:
         for nome_g, info in giorni.items():
             if info["data_obj"] >= cal["oggi_obj"]:
-                imp = st.session_state.programma[id_sett][nome_g]
+                mostrati += 1
+                imp = programma[id_sett][nome_g]
                 
-                # Header con stella se oggi
                 if info["data_obj"] == cal["oggi_obj"]:
                     st.markdown(f"## 🌟 {info['data_testo'].upper()} (OGGI)")
                 else:
                     st.markdown(f"### 📅 {info['data_testo']}")
                 
-                # Mattina
+                # MATTINA: Sempre Scuola
                 t_mat = f"**☀️ MATTINA:** Scuola 🏫\n\n👉 *Ore 7:00 a casa!*"
-                if "GENITORI" in imp['mattina']['chi']: st.success(t_mat)
-                else: st.error(t_mat)
+                if "NONNI" in imp['mattina']['chi']: st.error(t_mat)
+                else: st.success(t_mat)
                 
-                # Pomeriggio
+                # POMERIGGIO
                 if imp.get("sara_uguale", True):
                     t_ins = f"**👦👧 LEO E SARA ({imp['pomeriggio_leo']['inizio']}-{imp['pomeriggio_leo']['fine']}):**\n\n{imp['pomeriggio_leo']['cosa']}"
-                    if "GENITORI" in imp['pomeriggio_leo']['chi']: st.success(t_ins)
-                    else: st.error(t_ins)
+                    if "NONNI" in imp['pomeriggio_leo']['chi']: st.error(t_ins)
+                    else: st.success(t_ins)
                 else:
-                    # Leo
                     t_l = f"**👦 LEO ({imp['pomeriggio_leo']['inizio']}-{imp['pomeriggio_leo']['fine']}):** {imp['pomeriggio_leo']['cosa']}"
-                    if "GENITORI" in imp['pomeriggio_leo']['chi']: st.success(t_l)
-                    else: st.error(t_l)
-                    # Sara
                     t_s = f"**👧 SARA ({imp['pomeriggio_sara']['inizio']}-{imp['pomeriggio_sara']['fine']}):** {imp['pomeriggio_sara']['cosa']}"
-                    if "GENITORI" in imp['pomeriggio_sara']['chi']: st.success(t_s)
-                    else: st.error(t_s)
+                    if "NONNI" in imp['pomeriggio_leo']['chi']: st.error(t_l)
+                    else: st.success(t_l)
+                    if "NONNI" in imp['pomeriggio_sara']['chi']: st.error(t_s)
+                    else: st.success(t_s)
                 st.markdown("---")
 
-# --- MODIFICA GENITORI (CON SALVATAGGIO FLUIDO) ---
+# --- MODIFICA GENITORI (Semplificata) ---
 with sch_genitori:
-    st.title("⚙️ Pannello Genitori")
-    c_s, c_g = st.columns(2)
-    sett_scelta = c_s.radio("Settimana:", ["corrente", "prossima"], horizontal=True, format_func=lambda x: "Questa" if x=="corrente" else "La Prossima")
+    st.title("⚙️ Programmazione")
+    col_s, col_g = st.columns(2)
+    sett_scelta = col_s.radio("Settimana:", ["corrente", "prossima"], horizontal=True, format_func=lambda x: "Questa" if x=="corrente" else "La Prossima")
     
-    opzioni_g = [n for n, i in cal[sett_scelta].items() if i["data_obj"] >= cal["oggi_obj"]]
-    giorno_sel = c_g.selectbox("Scegli Giorno:", opzioni_g, format_func=lambda x: cal[sett_scelta][x]["data_testo"])
+    opzioni_giorni = [n for n, i in cal[sett_scelta].items() if i["data_obj"] >= cal["oggi_obj"]]
+    if not opzioni_giorni:
+        st.warning("Seleziona 'La Prossima' settimana.")
+        giorno_sel = None
+    else:
+        giorno_sel = col_g.selectbox("Giorno:", opzioni_giorni, format_func=lambda x: cal[sett_scelta][x]["data_testo"])
 
     if giorno_sel:
-        # Recupero dati per brevità
-        d = st.session_state.programma[sett_scelta][giorno_sel]
+        dati_g = programma[sett_scelta][giorno_sel]
         
+        # MATTINA SEMPLIFICATA: Solo scelta colore
         st.subheader("☀️ Mattina: Scuola 🏫")
-        d["mattina"]["chi"] = st.selectbox("Chi accompagna?", OPZIONI_CHI, 
-                                          index=OPZIONI_CHI.index(d["mattina"]["chi"]), 
-                                          key=f"m_chi_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
+        chi_m = st.selectbox("Chi accompagna a scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["mattina"]["chi"]), key="m_chi")
         
         st.markdown("---")
         st.subheader("👦 Pomeriggio LEO")
-        col1, col2 = st.columns(2)
-        d["pomeriggio_leo"]["chi"] = col1.selectbox("Chi?", OPZIONI_CHI, 
-                                                  index=OPZIONI_CHI.index(d["pomeriggio_leo"]["chi"]), 
-                                                  key=f"l_chi_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-        d["pomeriggio_leo"]["cosa"] = col2.selectbox("Attività?", OPZIONI_ATTIVITA, 
-                                                   index=OPZIONI_ATTIVITA.index(d["pomeriggio_leo"]["cosa"]) if d["pomeriggio_leo"]["cosa"] in OPZIONI_ATTIVITA else 0, 
-                                                   key=f"l_cos_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-        
-        col3, col4 = st.columns(2)
-        d["pomeriggio_leo"]["inizio"] = col3.text_input("Inizio", d["pomeriggio_leo"]["inizio"], key=f"l_in_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-        d["pomeriggio_leo"]["fine"] = col4.text_input("Fine", d["pomeriggio_leo"]["fine"], key=f"l_fi_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
+        c3, c4 = st.columns(2)
+        chi_l = c3.selectbox("Chi?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leo"]["chi"]), key="l1")
+        cos_l = c4.selectbox("Attività?", OPZIONI_ATTIVITA, index=OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leo"]["cosa"]) if dati_g["pomeriggio_leo"]["cosa"] in OPZIONI_ATTIVITA else 0, key="l2")
+        c5, c6 = st.columns(2)
+        in_l = st.text_input("Inizio", dati_g["pomeriggio_leo"]["inizio"], key="l_in")
+        fi_l = st.text_input("Fine", dati_g["pomeriggio_leo"]["fine"], key="l_fi")
 
-        d["sara_uguale"] = st.checkbox("✅ Sara fa lo stesso di Leo", value=d.get("sara_uguale", True), key=f"s_ug_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
+        sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leo", value=dati_g.get("sara_uguale", True))
         
-        if not d["sara_uguale"]:
+        if not sara_uguale:
             st.subheader("👧 Pomeriggio SARA")
-            col5, col6 = st.columns(2)
-            d["pomeriggio_sara"]["chi"] = col5.selectbox("Chi Sara?", OPZIONI_CHI, index=OPZIONI_CHI.index(d["pomeriggio_sara"]["chi"]), key=f"s_chi_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-            d["pomeriggio_sara"]["cosa"] = col6.selectbox("Attività Sara?", OPZIONI_ATTIVITA, index=OPZIONI_ATTIVITA.index(d["pomeriggio_sara"]["cosa"]) if d["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else 0, key=f"s_cos_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-            
-            col7, col8 = st.columns(2)
-            d["pomeriggio_sara"]["inizio"] = col7.text_input("Inizio Sara", d["pomeriggio_sara"]["inizio"], key=f"s_in_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-            d["pomeriggio_sara"]["fine"] = col8.text_input("Fine Sara", d["pomeriggio_sara"]["fine"], key=f"s_fi_{giorno_sel}_{sett_scelta}", on_change=salva_programma)
-        else:
-            # Sincronizza Sara con Leo se la spunta è attiva
-            d["pomeriggio_sara"] = d["pomeriggio_leo"].copy()
-            
-        st.caption("✅ Le modifiche vengono salvate istantaneamente.")
+            c7, c8 = st.columns(2)
+            chi_s = c7.selectbox("Chi?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi"]), key="s1")
+            cos_s = c8.selectbox("Attività?", OPZIONI_ATTIVITA, index=OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else 0, key="s2")
+            in_s = st.text_input("Inizio Sara", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
+            fi_s = st.text_input("Fine Sara", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
+
+        if st.button("💾 SALVA PROGRAMMA"):
+            programma[sett_scelta][giorno_sel]["mattina"] = {"chi": chi_m, "cosa": "Scuola 🏫"}
+            programma[sett_scelta][giorno_sel]["pomeriggio_leo"] = {"chi": chi_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l}
+            programma[sett_scelta][giorno_sel]["sara_uguale"] = sara_uguale
+            if sara_uguale:
+                programma[sett_scelta][giorno_sel]["pomeriggio_sara"] = programma[sett_scelta][giorno_sel]["pomeriggio_leo"].copy()
+            else:
+                programma[sett_scelta][giorno_sel]["pomeriggio_sara"] = {"chi": chi_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s}
+            salva_programma(programma)
+            st.success("Salvato!")
+            st.rerun()
