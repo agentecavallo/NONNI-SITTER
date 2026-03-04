@@ -21,16 +21,19 @@ def ottieni_date_settimana():
             "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]
     
     date_formattate = {}
+    indici_giorni = {} # Ci serve per capire l'ordine cronologico
+    
     for i, nome in enumerate(nomi_giorni):
         data_giorno = lunedi + timedelta(days=i)
         data_testo = f"{nome} {data_giorno.day} {mesi[data_giorno.month-1]} {data_giorno.year}"
         date_formattate[nome] = data_testo
+        indici_giorni[nome] = i
         
-    # Otteniamo il nome del giorno di oggi in italiano per il confronto
     giorni_ita = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
     oggi_ita = giorni_ita[oggi.weekday()]
+    indice_oggi = oggi.weekday()
     
-    return date_formattate, oggi_ita
+    return date_formattate, oggi_ita, indice_oggi, indici_giorni
 
 # 2. GESTIONE MEMORIA
 def crea_settimana_base():
@@ -49,7 +52,6 @@ def carica_programma():
         try:
             with open(FILE_MEMORIA, "r", encoding="utf-8") as file:
                 dati = json.load(file)
-                # Se il file è vecchio (manca pomeriggio_leo), resetta
                 if "Lunedì" in dati and "pomeriggio_leo" not in dati["Lunedì"]:
                     return crea_settimana_base()
                 return dati
@@ -61,7 +63,7 @@ def salva_programma(dati):
         json.dump(dati, file, indent=4)
 
 programma = carica_programma()
-date_settimana, oggi_nome_ita = ottieni_date_settimana()
+date_settimana, oggi_nome_ita, indice_oggi, indici_mappa = ottieni_date_settimana()
 
 # ==========================================
 # 3. INTERFACCIA (TABS)
@@ -72,15 +74,20 @@ sch_nonni, sch_genitori = st.tabs(["🚕 Vista Nonni", "⚙️ Modifica"])
 with sch_nonni:
     st.title("🚕 Il Taxi dei Nipoti")
     
-    # BOX DI EVIDENZA PER OGGI
-    if oggi_nome_ita in date_settimana:
+    if indice_oggi < 5: # Se siamo tra Lunedì e Venerdì
         st.info(f"🌟 **OGGI È {date_settimana[oggi_nome_ita].upper()}**")
     else:
-        st.info("📅 Fine settimana! Ecco il programma della settimana passata o futura.")
+        st.warning("🏁 La settimana scolastica è finita! Riposatevi! ❤️")
     
     st.markdown("---")
 
+    giorni_mostrati = 0
     for giorno_chiave, impegni in programma.items():
+        # --- LOGICA FILTRO: Mostra solo da oggi in poi ---
+        if indici_mappa[giorno_chiave] < indice_oggi:
+            continue # Salta i giorni passati
+        
+        giorni_mostrati += 1
         data_display = date_settimana[giorno_chiave]
         
         # EVIDENZIAZIONE GIORNO
@@ -113,8 +120,11 @@ with sch_nonni:
             else: st.success(t_sara)
             
         st.markdown("---")
+    
+    if giorni_mostrati == 0 and indice_oggi < 7:
+        st.write("Nessun impegno rimasto per questa settimana! ☕")
 
-# --- MODIFICA GENITORI ---
+# --- MODIFICA GENITORI (Invariata per permettervi di programmare tutto) ---
 with sch_genitori:
     st.title("⚙️ Pannello Controllo")
     scelta = st.selectbox("Seleziona Giorno:", list(programma.keys()), 
