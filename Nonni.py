@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v15.json" # Aggiornato logica andata interna per Eufonio e Yoga
+FILE_MEMORIA = "programma_v16.json" # Aggiornato per caricare i default della settimana tipo
 OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
 
 # Liste attività separate e personalizzate
@@ -32,15 +32,42 @@ def ottieni_calendario():
 
     return {"corrente": formatta_settimana(lunedi_curr), "prossima": formatta_settimana(lunedi_next), "oggi_obj": oggi}
 
-# 2. GESTIONE MEMORIA
+# 2. GESTIONE MEMORIA (ORA CON LA SETTIMANA TIPO PRECOMPILATA)
 def crea_struttura_vuota():
     def sett_vuota():
-        return {g: {
-            "mattina": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Scuola 🏫"},
-            "sara_uguale": True,
-            "pomeriggio_leonardo": {"chi_andata": "🟢 FACCIAMO NOI GENITORI", "chi_ritorno": "🟢 FACCIAMO NOI GENITORI", "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
-            "pomeriggio_sara": {"chi_andata": "🟢 FACCIAMO NOI GENITORI", "chi_ritorno": "🟢 FACCIAMO NOI GENITORI", "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"}
-        } for g in ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]}
+        sett = {}
+        chi_def = "🟢 FACCIAMO NOI GENITORI"
+        
+        for g in ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]:
+            if g == "Lunedì":
+                sett[g] = {
+                    "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
+                    "sara_uguale": False,
+                    "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Eufonio 🎺", "inizio": "", "fine": "18:00", "dove_ritorno": "Casa Nostra 🏠"},
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"}
+                }
+            elif g == "Martedì" or g == "Venerdì":
+                sett[g] = {
+                    "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
+                    "sara_uguale": True,
+                    "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Ginnastica Artistica 🤸‍♀️", "inizio": "17:00", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Ginnastica Artistica 🤸‍♀️", "inizio": "16:30", "fine": "17:30", "dove_ritorno": "Casa Nostra 🏠"}
+                }
+            elif g == "Mercoledì":
+                sett[g] = {
+                    "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
+                    "sara_uguale": False,
+                    "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Yoga 🧘‍♂️", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"}
+                }
+            else: # Giovedì
+                sett[g] = {
+                    "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
+                    "sara_uguale": True,
+                    "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"}
+                }
+        return sett
     return {"corrente": sett_vuota(), "prossima": sett_vuota()}
 
 def carica_programma():
@@ -327,47 +354,4 @@ with sch_genitori:
                 if cos_s == "Scuola 🏫":
                     chi_and_s = OPZIONI_CHI[0]
                     c_rit_s, c_dest_s = st.columns(2)
-                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key="s_rit")
-                    
-                    if "NONNI" in chi_rit_s:
-                        dove_rit_s = c_dest_s.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key="s_dest")
-                    else:
-                        dove_rit_s = "Casa Nostra 🏠"
-                    in_s, fi_s = "", ""
-                else:
-                    c_and_s, c_rit_s = st.columns(2)
-                    chi_and_s = c_and_s.selectbox("🚕 Chi la PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key="s_and")
-                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key="s_rit")
-                    
-                    if "NONNI" in chi_rit_s:
-                        c_dest_s, c_vuoto_s = st.columns(2)
-                        dove_rit_s = c_dest_s.selectbox("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, key="s_dest")
-                    else:
-                        dove_rit_s = "Casa Nostra 🏠"
-
-                    if cos_s == "Ginnastica Artistica 🤸‍♀️":
-                        st.info("⏱️ Orari prefissati Sara: **16:30 - 17:30**")
-                        in_s, fi_s = "16:30", "17:30"
-                    else:
-                        c_in_s, c_fi_s = st.columns(2)
-                        in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
-                        fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
-            else:
-                chi_and_s, chi_rit_s, cos_s, dove_rit_s = chi_and_l, chi_rit_l, cos_l, dove_rit_l
-                if cos_s == "Ginnastica Artistica 🤸‍♀️":
-                    in_s, fi_s = "16:30", "17:30"
-                elif cos_s == "Scuola 🏫":
-                    in_s, fi_s = "", ""
-                else:
-                    in_s, fi_s = in_l, fi_l
-
-        if st.button("💾 SALVA PROGRAMMA"):
-            programma[sett_scelta][giorno_sel] = {
-                "mattina": {"chi": chi_m, "cosa": "Scuola 🏫"},
-                "pomeriggio_leonardo": {"chi_andata": chi_and_l, "chi_ritorno": chi_rit_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l, "dove_ritorno": dove_rit_l},
-                "sara_uguale": sara_uguale,
-                "pomeriggio_sara": {"chi_andata": chi_and_s, "chi_ritorno": chi_rit_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s, "dove_ritorno": dove_rit_s}
-            }
-            salva_programma(programma)
-            st.success("Programma salvato con successo!")
-            st.rerun()
+                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g[
