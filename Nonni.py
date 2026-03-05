@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v16.json" # Aggiornato per caricare i default della settimana tipo
+FILE_MEMORIA = "programma_definitivo.json" # Nome nuovo per forzare l'azzeramento della memoria e caricare i default
 OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
 
 # Liste attività separate e personalizzate
@@ -32,7 +32,7 @@ def ottieni_calendario():
 
     return {"corrente": formatta_settimana(lunedi_curr), "prossima": formatta_settimana(lunedi_next), "oggi_obj": oggi}
 
-# 2. GESTIONE MEMORIA (ORA CON LA SETTIMANA TIPO PRECOMPILATA)
+# 2. GESTIONE MEMORIA CON SETTIMANA TIPO
 def crea_struttura_vuota():
     def sett_vuota():
         sett = {}
