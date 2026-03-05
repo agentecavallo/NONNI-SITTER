@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v14.json" # Aggiornato per nascondere le destinazioni inutili
+FILE_MEMORIA = "programma_v15.json" # Aggiornato logica andata interna per Eufonio e Yoga
 OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
 
 # Liste attività separate e personalizzate
@@ -97,9 +97,9 @@ with sch_nonni:
                         else:
                             return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Ritiro{orario_scuola}:** {b_ritorno}"
                     
-                    elif dati['cosa'] == "Eufonio 🎺":
+                    elif dati['cosa'] in ["Eufonio 🎺", "Yoga 🧘‍♂️"]:
                         if "NONNI" in dati['chi_ritorno']:
-                            return (f"**{emoji} {nome}:** {dati['cosa']}\n\n👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n*(📍 Riprendere da EUFONIO 🎺 e portare a {dest})*")
+                            return (f"**{emoji} {nome}:** {dati['cosa']}\n\n👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n*(📍 Riprendere da {dati['cosa'].upper()} e portare a {dest})*")
                         else:
                             return (f"**{emoji} {nome}:** {dati['cosa']}\n\n👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}")
                     
@@ -120,7 +120,7 @@ with sch_nonni:
                         return f"**{emoji} {nome}:** {dati['cosa']}\n\n{txt_andata}\n\n{txt_ritorno}"
 
                 def calcola_colore(dati):
-                    if dati['cosa'] in ["Scuola 🏫", "Eufonio 🎺"]:
+                    if dati['cosa'] in ["Scuola 🏫", "Eufonio 🎺", "Yoga 🧘‍♂️"]:
                         return "red" if "NONNI" in dati['chi_ritorno'] else "green"
                     else:
                         andata_n = "NONNI" in dati.get('chi_andata', '')
@@ -197,34 +197,41 @@ with sch_genitori:
             c_rit, c_dest = st.columns(2)
             chi_rit_l = c_rit.selectbox("🚕 Chi lo riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"]["chi_ritorno"]), key="l_rit")
             
-            # Appare la destinazione SOLO se ci vanno i nonni
             if "NONNI" in chi_rit_l:
                 dove_rit_l = c_dest.selectbox("📍 Dove portarlo?", opz_dest_l, index=idx_dest_l, key="l_dest")
             else:
-                dove_rit_l = "Casa Nostra 🏠" # Valore silente
+                dove_rit_l = "Casa Nostra 🏠"
             
             in_l, fi_l = "", ""
         
-        elif cos_l == "Eufonio 🎺":
+        elif cos_l in ["Eufonio 🎺", "Yoga 🧘‍♂️"]:
             chi_and_l = OPZIONI_CHI[0]
-            st.info("⏱️ Regola Eufonio attiva: **Bisogna solo andarlo a riprendere alle 18:00.**")
-            c_rit, c_dest = st.columns(2)
-            chi_rit_l = c_rit.selectbox("🚕 Chi RIPRENDE Leonardo?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key="l_rit")
             
-            # Appare la destinazione SOLO se ci vanno i nonni
+            if cos_l == "Eufonio 🎺":
+                st.info("⏱️ Regola Eufonio: **Rimane a scuola, bisogna solo andarlo a riprendere alle 18:00.**")
+            else:
+                st.info("🧘‍♂️ Regola Yoga: **Rimane a scuola, bisogna solo andarlo a riprendere.**")
+                
+            c_rit, c_dest = st.columns(2)
+            nome_att = cos_l.split()[0]
+            chi_rit_l = c_rit.selectbox(f"🚕 Chi RIPRENDE Leonardo da {nome_att}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key="l_rit")
+            
             if "NONNI" in chi_rit_l:
                 dove_rit_l = c_dest.selectbox("📍 Dove portarlo?", opz_dest_l, index=idx_dest_l, key="l_dest")
             else:
                 dove_rit_l = "Casa Nostra 🏠"
                 
-            in_l, fi_l = "", "18:00"
+            in_l = ""
+            if cos_l == "Eufonio 🎺":
+                fi_l = "18:00"
+            else:
+                fi_l = st.text_input("Orario Ritiro", dati_g["pomeriggio_leonardo"]["fine"], key="l_fi")
             
         else:
             c_and, c_rit = st.columns(2)
             chi_and_l = c_and.selectbox("🚕 Chi lo PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), key="l_and")
             chi_rit_l = c_rit.selectbox("🚕 Chi lo RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key="l_rit")
             
-            # Appare la destinazione SOLO se ci vanno i nonni al ritorno
             if "NONNI" in chi_rit_l:
                 c_dest, c_vuoto = st.columns(2)
                 dove_rit_l = c_dest.selectbox("📍 Al ritorno, dove va?", opz_dest_l, index=idx_dest_l, key="l_dest")
