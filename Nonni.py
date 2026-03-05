@@ -354,4 +354,47 @@ with sch_genitori:
                 if cos_s == "Scuola 🏫":
                     chi_and_s = OPZIONI_CHI[0]
                     c_rit_s, c_dest_s = st.columns(2)
-                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g[
+                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key="s_rit")
+                    
+                    if "NONNI" in chi_rit_s:
+                        dove_rit_s = c_dest_s.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key="s_dest")
+                    else:
+                        dove_rit_s = "Casa Nostra 🏠"
+                    in_s, fi_s = "", ""
+                else:
+                    c_and_s, c_rit_s = st.columns(2)
+                    chi_and_s = c_and_s.selectbox("🚕 Chi la PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key="s_and")
+                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key="s_rit")
+                    
+                    if "NONNI" in chi_rit_s:
+                        c_dest_s, c_vuoto_s = st.columns(2)
+                        dove_rit_s = c_dest_s.selectbox("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, key="s_dest")
+                    else:
+                        dove_rit_s = "Casa Nostra 🏠"
+
+                    if cos_s == "Ginnastica Artistica 🤸‍♀️":
+                        st.info("⏱️ Orari prefissati Sara: **16:30 - 17:30**")
+                        in_s, fi_s = "16:30", "17:30"
+                    else:
+                        c_in_s, c_fi_s = st.columns(2)
+                        in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
+                        fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
+            else:
+                chi_and_s, chi_rit_s, cos_s, dove_rit_s = chi_and_l, chi_rit_l, cos_l, dove_rit_l
+                if cos_s == "Ginnastica Artistica 🤸‍♀️":
+                    in_s, fi_s = "16:30", "17:30"
+                elif cos_s == "Scuola 🏫":
+                    in_s, fi_s = "", ""
+                else:
+                    in_s, fi_s = in_l, fi_l
+
+        if st.button("💾 SALVA PROGRAMMA"):
+            programma[sett_scelta][giorno_sel] = {
+                "mattina": {"chi": chi_m, "cosa": "Scuola 🏫"},
+                "pomeriggio_leonardo": {"chi_andata": chi_and_l, "chi_ritorno": chi_rit_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l, "dove_ritorno": dove_rit_l},
+                "sara_uguale": sara_uguale,
+                "pomeriggio_sara": {"chi_andata": chi_and_s, "chi_ritorno": chi_rit_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s, "dove_ritorno": dove_rit_s}
+            }
+            salva_programma(programma)
+            st.success("Programma salvato con successo!")
+            st.rerun()
