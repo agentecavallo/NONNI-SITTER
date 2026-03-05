@@ -1,21 +1,20 @@
 import streamlit as st
 import json
 import os
+import requests
 from datetime import datetime, timedelta
 
-# 1. IMPOSTAZIONI PAGINA
+# 1. IMPOSTAZIONI PAGINA E STATO NAVIGAZIONE
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-# --- INIZIALIZZAZIONE STATO NAVIGAZIONE (SMART UI) ---
 if "week" not in st.session_state:
     st.session_state.week = "corrente"
 if "day" not in st.session_state:
     st.session_state.day = None
 
-FILE_MEMORIA = "programma_definitivo_v6.json" 
+FILE_MEMORIA = "programma_fallback.json" 
 OPZIONI_CHI = ["🟢 GENITORI", "🔴 NONNI"]
 
-# Liste attività separate e personalizzate
 OPZIONI_ATTIVITA_LEO = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Scuola 🏫"]
 OPZIONI_ATTIVITA_SARA = ["Ginnastica Artistica 🤸‍♀️", "Scuola 🏫"]
 
@@ -38,12 +37,10 @@ def ottieni_calendario():
 
     return {"corrente": formatta_settimana(lunedi_curr), "prossima": formatta_settimana(lunedi_next), "oggi_obj": oggi}
 
-# 2. GESTIONE MEMORIA CON SETTIMANA TIPO
 def crea_struttura_vuota():
     def sett_vuota():
         sett = {}
         chi_def = "🟢 GENITORI"
-        
         for g in ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]:
             if g == "Lunedì":
                 sett[g] = {
@@ -66,7 +63,7 @@ def crea_struttura_vuota():
                     "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Yoga 🧘‍♂️", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
                     "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"}
                 }
-            else: # Giovedì
+            else: 
                 sett[g] = {
                     "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
                     "sara_uguale": True,
@@ -76,16 +73,49 @@ def crea_struttura_vuota():
         return sett
     return {"corrente": sett_vuota(), "prossima": sett_vuota()}
 
+# --- NUOVE FUNZIONI JSONBIN ---
 def carica_programma():
-    if os.path.exists(FILE_MEMORIA):
-        try:
-            with open(FILE_MEMORIA, "r", encoding="utf-8") as file: return json.load(file)
-        except: return crea_struttura_vuota()
-    return crea_struttura_vuota()
+    try:
+        api_key = st.secrets["JSONBIN_KEY"]
+        bin_id = st.secrets["JSONBIN_BIN_ID"]
+        url = f"https://api.jsonbin.io/v3/b/{bin_id}"
+        headers = {"X-Master-Key": api_key}
+        
+        req = requests.get(url, headers=headers)
+        if req.status_code == 200:
+            dati = req.json().get("record")
+            if dati and "corrente" in dati:  # Verifica che non sia vuoto
+                return dati
+        return crea_struttura_vuota()
+    except Exception as e:
+        # Se non funziona internet o mancano i secrets, prova il file locale
+        if os.path.exists(FILE_MEMORIA):
+            try:
+                with open(FILE_MEMORIA, "r", encoding="utf-8") as file: return json.load(file)
+            except: return crea_struttura_vuota()
+        return crea_struttura_vuota()
 
 def salva_programma(dati):
+    salvato_cloud = False
+    try:
+        api_key = st.secrets["JSONBIN_KEY"]
+        bin_id = st.secrets["JSONBIN_BIN_ID"]
+        url = f"https://api.jsonbin.io/v3/b/{bin_id}"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Master-Key": api_key
+        }
+        req = requests.put(url, json=dati, headers=headers)
+        if req.status_code == 200:
+            salvato_cloud = True
+    except:
+        pass
+    
+    # Salvataggio di sicurezza locale
     with open(FILE_MEMORIA, "w", encoding="utf-8") as file:
         json.dump(dati, file, indent=4)
+        
+    return salvato_cloud
 
 cal = ottieni_calendario()
 programma = carica_programma()
@@ -193,7 +223,7 @@ with sch_nonni:
                 
                 st.markdown("---")
 
-# --- PANNELLO GENITORI (NUOVA INTERFACCIA SMART) ---
+# --- PANNELLO GENITORI ---
 with sch_genitori:
     st.title("⚙️ Programmazione")
     
@@ -212,7 +242,6 @@ with sch_genitori:
     sett_scelta = st.session_state.week
     giorni_dict = cal[sett_scelta]
     
-    # Cerchiamo i giorni validi per selezionare automaticamente il primo se non l'hai fatto
     giorni_validi = [g for g, info in giorni_dict.items() if info["data_obj"] >= cal["oggi_obj"] or sett_scelta == "prossima"]
     if st.session_state.day not in giorni_validi and giorni_validi:
         st.session_state.day = giorni_validi[0]
@@ -399,7 +428,7 @@ with sch_genitori:
                             in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key=f"s_in_alt_{k_id}")
                             fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key=f"s_fi_alt_{k_id}")
                 else:
-                    st.success("✅ Segue esattamente gli spostamenti e gli orari di Leonardo.")
+                    st.success("✅ Segue gli orari di Leonardo.")
                     chi_and_s, chi_rit_s, cos_s, dove_rit_s = chi_and_l, chi_rit_l, cos_l, dove_rit_l
                     if cos_s == "Ginnastica Artistica 🤸‍♀️":
                         in_s, fi_s = "16:30", "17:30"
@@ -417,6 +446,9 @@ with sch_genitori:
                 "sara_uguale": sara_uguale,
                 "pomeriggio_sara": {"chi_andata": chi_and_s, "chi_ritorno": chi_rit_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s, "dove_ritorno": dove_rit_s}
             }
-            salva_programma(programma)
-            st.success(f"Programma di {giorno_sel.upper()} salvato con successo!")
+            salvato = salva_programma(programma)
+            if salvato:
+                st.success(f"☁️ Salvato in Cloud: Programma di {giorno_sel.upper()} aggiornato!")
+            else:
+                st.warning(f"⚠️ Salvato in Locale (Configura JSONBIN per salvare sul Cloud).")
             st.rerun()
