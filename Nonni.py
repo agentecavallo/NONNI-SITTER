@@ -85,7 +85,7 @@ with sch_nonni:
                 # --- LOGICA MATTINA MODIFICATA ---
                 if "NONNI" in imp['mattina']['chi']:
                     # Se tocca ai NONNI (ROSSO), mostra l'orario
-                    st.error(f"**☀️ MATTINA:** Scuola 🏫\n\n👉 *Ore 7:00 a casa!*")
+                    st.error(f"**☀️ MATTINA:** Scuola 🏫\n\n👉 *Ore 7:00 vi aspettiamo a casa!*")
                 else:
                     # Se tocca ai GENITORI (VERDE), nasconde la scritta dell'orario
                     st.success(f"**☀️ MATTINA:** Scuola 🏫")
