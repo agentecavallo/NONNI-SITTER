@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v7.json" # Memoria aggiornata per Andata/Ritorno
+FILE_MEMORIA = "programma_v8.json" # Aggiornato per le nuove istruzioni di tragitto
 OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
 OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Scuola 🏫"]
 
@@ -83,15 +83,21 @@ with sch_nonni:
                 else:
                     st.success(f"**☀️ MATTINA:** Scuola 🏫")
                 
-                # --- LOGICA POMERIGGIO E SEMAFORI ANDATA/RITORNO ---
+                # --- LOGICA POMERIGGIO CON ISTRUZIONI ESPLICITE SUL TRAGITTO ---
                 def formatta_blocco(nome, emoji, dati):
                     if dati['cosa'] == "Scuola 🏫":
                         bollino = "🔴 (NONNI)" if "NONNI" in dati['chi_ritorno'] else "🟢 (GENITORI)"
-                        return f"**{emoji} {nome}:** Rimane a Scuola 🏫\n\n👉 **Ritiro:** {bollino}"
+                        return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Chi li riprende da Scuola:** {bollino}"
                     else:
                         b_andata = "🔴 (NONNI)" if "NONNI" in dati['chi_andata'] else "🟢 (GENITORI)"
                         b_ritorno = "🔴 (NONNI)" if "NONNI" in dati['chi_ritorno'] else "🟢 (GENITORI)"
-                        return f"**{emoji} {nome}:** {dati['cosa']}\n\n👉 **Andata (ore {dati['inizio']}):** {b_andata}\n👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}"
+                        attivita = dati['cosa'].upper()
+                        
+                        return (f"**{emoji} {nome}:** {dati['cosa']}\n\n"
+                                f"👉 **Andata (ore {dati['inizio']}):** {b_andata}\n"
+                                f"*(📍 Prendere a Scuola 🏫 e portare a {attivita})*\n\n"
+                                f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n"
+                                f"*(📍 Riprendere da {attivita} e portare a Casa 🏠)*")
 
                 # Leonardo
                 t_l = formatta_blocco("LEONARDO", "👦", imp['pomeriggio_leonardo'])
@@ -152,9 +158,8 @@ with sch_genitori:
         idx_cosa_l = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
         cos_l = st.selectbox("Attività Leonardo?", OPZIONI_ATTIVITA, index=idx_cosa_l, key="l2")
         
-        # Logica Andata/Ritorno Leonardo
         if cos_l == "Scuola 🏫":
-            chi_and_l = OPZIONI_CHI[0] # Se sta a scuola, l'andata non serve, è ininfluente
+            chi_and_l = OPZIONI_CHI[0]
             chi_rit_l = st.selectbox("🚕 Chi lo riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"]["chi_ritorno"]), key="l_rit")
             in_l, fi_l = "", ""
         else:
@@ -163,7 +168,7 @@ with sch_genitori:
             chi_rit_l = c_rit.selectbox("🚕 Chi lo RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key="l_rit")
             
             if cos_l == "Ginnastica Artistica 🤸‍♀️":
-                st.info("⏱️ Orari Ginnastica prefissati per Leonardo: **17:00 - 18:30**")
+                st.info("⏱️ Orari prefissati Leonardo: **17:00 - 18:30**")
                 in_l, fi_l = "17:00", "18:30"
             else:
                 c_in, c_fi = st.columns(2)
@@ -171,7 +176,7 @@ with sch_genitori:
                 fi_l = c_fi.text_input("Orario Fine", dati_g["pomeriggio_leonardo"]["fine"], key="l_fi")
 
         # --- CHECKBOX SARA ---
-        sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo (con i suoi orari se è Ginnastica)", value=dati_g.get("sara_uguale", True))
+        sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True))
         
         # --- POMERIGGIO SARA ---
         if not sara_uguale:
@@ -189,18 +194,14 @@ with sch_genitori:
                 chi_rit_s = c_rit_s.selectbox("🚕 Chi la RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key="s_rit")
                 
                 if cos_s == "Ginnastica Artistica 🤸‍♀️":
-                    st.info("⏱️ Orari Ginnastica prefissati per Sara: **16:30 - 17:30**")
+                    st.info("⏱️ Orari prefissati Sara: **16:30 - 17:30**")
                     in_s, fi_s = "16:30", "17:30"
                 else:
                     c_in_s, c_fi_s = st.columns(2)
                     in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
                     fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
         else:
-            # Sincronizzazione Intelligente:
-            chi_and_s = chi_and_l
-            chi_rit_s = chi_rit_l
-            cos_s = cos_l
-            
+            chi_and_s, chi_rit_s, cos_s = chi_and_l, chi_rit_l, cos_l
             if cos_s == "Ginnastica Artistica 🤸‍♀️":
                 in_s, fi_s = "16:30", "17:30"
             elif cos_s == "Scuola 🏫":
