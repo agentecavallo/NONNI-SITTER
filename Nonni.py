@@ -6,9 +6,12 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v10.json" # Aggiornato per includere le Destinazioni
+FILE_MEMORIA = "programma_v12.json" # Memoria aggiornata per la regola Eufonio+Yoga
 OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
-OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Scuola 🏫"]
+
+# Liste attività separate e personalizzate
+OPZIONI_ATTIVITA_LEO = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Scuola 🏫"]
+OPZIONI_ATTIVITA_SARA = ["Ginnastica Artistica 🤸‍♀️", "Scuola 🏫"]
 
 # --- FUNZIONE CALENDARIO ---
 def ottieni_calendario():
@@ -82,33 +85,43 @@ with sch_nonni:
                 else:
                     st.success(f"**☀️ MATTINA:** Scuola 🏫")
                 
-                # --- LOGICA POMERIGGIO E FORMATTAZIONE ---
+                # --- LOGICA POMERIGGIO E NASCONDIMENTO DESTINAZIONE ---
                 def formatta_blocco(nome, emoji, dati):
                     b_ritorno = "🔴 (NONNI)" if "NONNI" in dati['chi_ritorno'] else "🟢 (GENITORI)"
                     dest = dati.get('dove_ritorno', 'Casa Nostra 🏠')
                     
                     if dati['cosa'] == "Scuola 🏫":
                         orario_scuola = f" (ore {dati['fine']})" if dati['fine'] else ""
-                        return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Ritiro{orario_scuola}:** {b_ritorno}\n📍 **Destinazione:** Portare a {dest}"
+                        if "NONNI" in dati['chi_ritorno']:
+                            return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Ritiro{orario_scuola}:** {b_ritorno}\n📍 **Destinazione:** Portare a {dest}"
+                        else:
+                            return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Ritiro{orario_scuola}:** {b_ritorno}"
                     
                     elif dati['cosa'] == "Eufonio 🎺":
-                        return (f"**{emoji} {nome}:** {dati['cosa']}\n\n"
-                                f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n"
-                                f"*(📍 Riprendere da EUFONIO 🎺 e portare a {dest})*")
+                        if "NONNI" in dati['chi_ritorno']:
+                            return (f"**{emoji} {nome}:** {dati['cosa']}\n\n👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n*(📍 Riprendere da EUFONIO 🎺 e portare a {dest})*")
+                        else:
+                            return (f"**{emoji} {nome}:** {dati['cosa']}\n\n👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}")
                     
                     else:
                         b_andata = "🔴 (NONNI)" if "NONNI" in dati.get('chi_andata', '') else "🟢 (GENITORI)"
                         attivita = dati['cosa'].upper()
-                        return (f"**{emoji} {nome}:** {dati['cosa']}\n\n"
-                                f"👉 **Andata (ore {dati['inizio']}):** {b_andata}\n"
-                                f"*(📍 Prendere a Scuola 🏫 e portare a {attivita})*\n\n"
-                                f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n"
-                                f"*(📍 Riprendere da {attivita} e portare a {dest})*")
+                        
+                        if "NONNI" in dati.get('chi_andata', ''):
+                            txt_andata = f"👉 **Andata (ore {dati['inizio']}):** {b_andata}\n*(📍 Prendere a Scuola 🏫 e portare a {attivita})*"
+                        else:
+                            txt_andata = f"👉 **Andata (ore {dati['inizio']}):** {b_andata}"
+                            
+                        if "NONNI" in dati['chi_ritorno']:
+                            txt_ritorno = f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n*(📍 Riprendere da {attivita} e portare a {dest})*"
+                        else:
+                            txt_ritorno = f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}"
+                            
+                        return f"**{emoji} {nome}:** {dati['cosa']}\n\n{txt_andata}\n\n{txt_ritorno}"
 
                 coinvolge_nonni_l = "NONNI" in imp['pomeriggio_leonardo'].get('chi_andata','') or "NONNI" in imp['pomeriggio_leonardo']['chi_ritorno']
                 coinvolge_nonni_s = "NONNI" in imp['pomeriggio_sara'].get('chi_andata','') or "NONNI" in imp['pomeriggio_sara']['chi_ritorno']
 
-                # Controllo blocco unito (ora deve coincidere anche la destinazione!)
                 identici = (
                     imp.get("sara_uguale", True) and
                     imp['pomeriggio_leonardo']['chi_andata'] == imp['pomeriggio_sara']['chi_andata'] and
@@ -159,10 +172,9 @@ with sch_genitori:
         
         # --- POMERIGGIO LEONARDO ---
         st.subheader("👦 Pomeriggio LEONARDO")
-        idx_cosa_l = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
-        cos_l = st.selectbox("Attività Leonardo?", OPZIONI_ATTIVITA, index=idx_cosa_l, key="l2")
+        idx_cosa_l = OPZIONI_ATTIVITA_LEO.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA_LEO else OPZIONI_ATTIVITA_LEO.index("Scuola 🏫")
+        cos_l = st.selectbox("Attività Leonardo?", OPZIONI_ATTIVITA_LEO, index=idx_cosa_l, key="l2")
         
-        # Logica destinazioni
         opz_dest_l = ["Casa Nostra 🏠", "Casa Nonni 🏡", "Lavoro Mamma 💼"] if cos_l == "Scuola 🏫" else ["Casa Nostra 🏠", "Casa Nonni 🏡"]
         dest_attuale_l = dati_g["pomeriggio_leonardo"].get("dove_ritorno", "Casa Nostra 🏠")
         idx_dest_l = opz_dest_l.index(dest_attuale_l) if dest_attuale_l in opz_dest_l else 0
@@ -201,8 +213,10 @@ with sch_genitori:
         # --- POMERIGGIO SARA ---
         st.markdown("---")
         
-        if cos_l == "Eufonio 🎺":
-            st.warning("⚠️ Poiché Leonardo ha Eufonio, Sara esce da Scuola alle **16:00**.")
+        # ECCEZIONE PER YOGA ED EUFONIO: Sara va sempre ripresa a scuola
+        if cos_l in ["Eufonio 🎺", "Yoga 🧘‍♂️"]:
+            nome_attivita_leo = cos_l.split()[0] # Prende solo il nome senza l'emoji per la frase
+            st.warning(f"⚠️ Poiché Leonardo ha {nome_attivita_leo}, Sara esce da Scuola alle **16:00**.")
             st.subheader("👧 Pomeriggio SARA")
             sara_uguale = False
             cos_s = "Scuola 🏫"
@@ -217,13 +231,47 @@ with sch_genitori:
             dove_rit_s = c_dest_s.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key="s_dest_eu")
             in_s, fi_s = "", "16:00"
             
+        elif cos_l not in OPZIONI_ATTIVITA_SARA:
+            st.warning(f"⚠️ Poiché Leonardo fa {cos_l} (che Sara non fa), devi scegliere un'attività diversa per lei.")
+            st.subheader("👧 Pomeriggio SARA")
+            sara_uguale = False
+            
+            idx_cosa_s = OPZIONI_ATTIVITA_SARA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA_SARA else OPZIONI_ATTIVITA_SARA.index("Scuola 🏫")
+            cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA_SARA, index=idx_cosa_s, key="s2")
+            
+            opz_dest_s = ["Casa Nostra 🏠", "Casa Nonni 🏡", "Lavoro Mamma 💼"] if cos_s == "Scuola 🏫" else ["Casa Nostra 🏠", "Casa Nonni 🏡"]
+            dest_attuale_s = dati_g["pomeriggio_sara"].get("dove_ritorno", "Casa Nostra 🏠")
+            idx_dest_s = opz_dest_s.index(dest_attuale_s) if dest_attuale_s in opz_dest_s else 0
+
+            if cos_s == "Scuola 🏫":
+                chi_and_s = OPZIONI_CHI[0]
+                c_rit_s, c_dest_s = st.columns(2)
+                chi_rit_s = c_rit_s.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key="s_rit")
+                dove_rit_s = c_dest_s.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key="s_dest")
+                in_s, fi_s = "", ""
+            else:
+                c_and_s, c_rit_s = st.columns(2)
+                chi_and_s = c_and_s.selectbox("🚕 Chi la PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key="s_and")
+                chi_rit_s = c_rit_s.selectbox("🚕 Chi la RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key="s_rit")
+                
+                c_dest_s, c_vuoto_s = st.columns(2)
+                dove_rit_s = c_dest_s.selectbox("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, key="s_dest")
+
+                if cos_s == "Ginnastica Artistica 🤸‍♀️":
+                    st.info("⏱️ Orari prefissati Sara: **16:30 - 17:30**")
+                    in_s, fi_s = "16:30", "17:30"
+                else:
+                    c_in_s, c_fi_s = st.columns(2)
+                    in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
+                    fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
+            
         else:
             sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo (stessa destinazione)", value=dati_g.get("sara_uguale", True))
             
             if not sara_uguale:
                 st.subheader("👧 Pomeriggio SARA")
-                idx_cosa_s = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
-                cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA, index=idx_cosa_s, key="s2")
+                idx_cosa_s = OPZIONI_ATTIVITA_SARA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA_SARA else OPZIONI_ATTIVITA_SARA.index("Scuola 🏫")
+                cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA_SARA, index=idx_cosa_s, key="s2")
                 
                 opz_dest_s = ["Casa Nostra 🏠", "Casa Nonni 🏡", "Lavoro Mamma 💼"] if cos_s == "Scuola 🏫" else ["Casa Nostra 🏠", "Casa Nonni 🏡"]
                 dest_attuale_s = dati_g["pomeriggio_sara"].get("dove_ritorno", "Casa Nostra 🏠")
