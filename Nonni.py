@@ -6,16 +6,14 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v5.json" # Cambiato per evitare errori con il vecchio nome Leo
+FILE_MEMORIA = "programma_v6.json" # Cambiato per attivare i nuovi automatismi
 OPZIONI_CHI = ["🔴 TOCCA AI NONNI", "🟢 FACCIAMO NOI GENITORI"]
 OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Scuola 🏫"]
 
 # --- FUNZIONE CALENDARIO ---
 def ottieni_calendario():
     oggi = datetime.now().date()
-    # Calcola il lunedì della settimana corrente
     lunedi_curr = oggi - timedelta(days=oggi.weekday())
-    # Calcola il lunedì della settimana prossima
     lunedi_next = lunedi_curr + timedelta(days=7)
     
     nomi_giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
@@ -73,10 +71,10 @@ with sch_nonni:
     
     for id_sett, giorni in per_nonni:
         for nome_g, info in giorni.items():
-            # Mostra solo i giorni da oggi in poi
             if info["data_obj"] >= cal["oggi_obj"]:
                 imp = programma[id_sett][nome_g]
                 
+                # --- Titolo Giorno ---
                 if info["data_obj"] == cal["oggi_obj"]:
                     st.markdown(f"## 🌟 {info['data_testo'].upper()} (OGGI)")
                 else:
@@ -88,27 +86,43 @@ with sch_nonni:
                 else:
                     st.success(f"**☀️ MATTINA:** Scuola 🏫")
                 
-                # --- LOGICA POMERIGGIO ---
-                if imp.get("sara_uguale", True):
-                    # Nasconde l'orario se è Scuola
-                    orari_str = "" if imp['pomeriggio_leonardo']['cosa'] == "Scuola 🏫" else f" ({imp['pomeriggio_leonardo']['inizio']}-{imp['pomeriggio_leonardo']['fine']})"
-                    t_ins = f"**👦👧 LEONARDO E SARA{orari_str}:**\n\n{imp['pomeriggio_leonardo']['cosa']}"
-                    
-                    if "NONNI" in imp['pomeriggio_leonardo']['chi']: st.error(t_ins)
+                # --- LOGICA POMERIGGIO E SEMAFORI ---
+                chi_l_str = imp['pomeriggio_leonardo']['chi']
+                chi_s_str = imp['pomeriggio_sara']['chi']
+                
+                # Estraiamo il bollino in base a chi deve andare
+                bollino_l = "🔴 (NONNI)" if "NONNI" in chi_l_str else "🟢 (GENITORI)"
+                bollino_s = "🔴 (NONNI)" if "NONNI" in chi_s_str else "🟢 (GENITORI)"
+                
+                # Funzione per formattare il blocco con il semaforo in evidenza
+                def formatta_blocco(nome, emoji, dati, bollino):
+                    if dati['cosa'] == "Scuola 🏫":
+                        return f"**{emoji} {nome}:** {dati['cosa']}"
+                    else:
+                        return f"**{emoji} {nome}:** {dati['cosa']}\n\n**👉 Orario: {bollino} {dati['inizio']} - {dati['fine']}**"
+
+                # Controllo se possiamo unirli (stessa persona, stessa attività, STESSI ORARI)
+                identici = (
+                    imp.get("sara_uguale", True) and
+                    chi_l_str == chi_s_str and
+                    imp['pomeriggio_leonardo']['cosa'] == imp['pomeriggio_sara']['cosa'] and
+                    imp['pomeriggio_leonardo']['inizio'] == imp['pomeriggio_sara']['inizio'] and
+                    imp['pomeriggio_leonardo']['fine'] == imp['pomeriggio_sara']['fine']
+                )
+
+                if identici:
+                    t_ins = formatta_blocco("LEONARDO E SARA", "👦👧", imp['pomeriggio_leonardo'], bollino_l)
+                    if "NONNI" in chi_l_str: st.error(t_ins)
                     else: st.success(t_ins)
                 else:
-                    # Nasconde l'orario se è Scuola per Leonardo
-                    orari_l = "" if imp['pomeriggio_leonardo']['cosa'] == "Scuola 🏫" else f" ({imp['pomeriggio_leonardo']['inizio']}-{imp['pomeriggio_leonardo']['fine']})"
-                    t_l = f"**👦 LEONARDO{orari_l}:** {imp['pomeriggio_leonardo']['cosa']}"
-                    
-                    # Nasconde l'orario se è Scuola per Sara
-                    orari_s = "" if imp['pomeriggio_sara']['cosa'] == "Scuola 🏫" else f" ({imp['pomeriggio_sara']['inizio']}-{imp['pomeriggio_sara']['fine']})"
-                    t_s = f"**👧 SARA{orari_s}:** {imp['pomeriggio_sara']['cosa']}"
-                    
-                    if "NONNI" in imp['pomeriggio_leonardo']['chi']: st.error(t_l)
+                    # Leonardo
+                    t_l = formatta_blocco("LEONARDO", "👦", imp['pomeriggio_leonardo'], bollino_l)
+                    if "NONNI" in chi_l_str: st.error(t_l)
                     else: st.success(t_l)
                     
-                    if "NONNI" in imp['pomeriggio_sara']['chi']: st.error(t_s)
+                    # Sara
+                    t_s = formatta_blocco("SARA", "👧", imp['pomeriggio_sara'], bollino_s)
+                    if "NONNI" in chi_s_str: st.error(t_s)
                     else: st.success(t_s)
                 
                 st.markdown("---")
@@ -145,19 +159,21 @@ with sch_genitori:
         idx_cosa_l = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
         cos_l = c4.selectbox("Attività?", OPZIONI_ATTIVITA, index=idx_cosa_l, key="l2")
         
-        # Logica di visualizzazione orari Leonardo
-        if cos_l != "Scuola 🏫":
+        # Automatismi Orari Leonardo
+        if cos_l == "Scuola 🏫":
+            in_l, fi_l = "", ""
+        elif cos_l == "Ginnastica Artistica 🤸‍♀️":
+            st.info("⏱️ Orari Ginnastica prefissati per Leo: **17:00 - 18:30**")
+            in_l, fi_l = "17:00", "18:30"
+        else:
             c5, c6 = st.columns(2)
             in_l = c5.text_input("Inizio", dati_g["pomeriggio_leonardo"]["inizio"], key="l_in")
             fi_l = c6.text_input("Fine", dati_g["pomeriggio_leonardo"]["fine"], key="l_fi")
-        else:
-            in_l = ""
-            fi_l = ""
 
-        # Checkbox SARA uguale a LEONARDO
+        # Checkbox SARA
         sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True))
         
-        # Gestione SARA (se diversa da LEONARDO)
+        # Gestione SARA
         if not sara_uguale:
             st.subheader("👧 Pomeriggio SARA")
             c7, c8 = st.columns(2)
@@ -166,20 +182,30 @@ with sch_genitori:
             idx_cosa_s = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
             cos_s = c8.selectbox("Attività?", OPZIONI_ATTIVITA, index=idx_cosa_s, key="s2")
             
-            # Logica di visualizzazione orari Sara
-            if cos_s != "Scuola 🏫":
+            # Automatismi Orari Sara
+            if cos_s == "Scuola 🏫":
+                in_s, fi_s = "", ""
+            elif cos_s == "Ginnastica Artistica 🤸‍♀️":
+                st.info("⏱️ Orari Ginnastica prefissati per Sara: **16:30 - 17:30**")
+                in_s, fi_s = "16:30", "17:30"
+            else:
                 c9, c10 = st.columns(2)
                 in_s = c9.text_input("Inizio Sara", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
                 fi_s = c10.text_input("Fine Sara", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
-            else:
-                in_s = ""
-                fi_s = ""
         else:
-            # Se uguale, i dati verranno sovrascritti al salvataggio
-            chi_s, cos_s, in_s, fi_s = chi_l, cos_l, in_l, fi_l
+            # Sincronizzazione Intelligente:
+            chi_s = chi_l
+            cos_s = cos_l
+            
+            # Anche se fanno "la stessa cosa", controlliamo gli orari specifici se è ginnastica
+            if cos_s == "Ginnastica Artistica 🤸‍♀️":
+                in_s, fi_s = "16:30", "17:30"
+            elif cos_s == "Scuola 🏫":
+                in_s, fi_s = "", ""
+            else:
+                in_s, fi_s = in_l, fi_l
 
         if st.button("💾 SALVA PROGRAMMA"):
-            # Aggiornamento dizionario programma
             programma[sett_scelta][giorno_sel] = {
                 "mattina": {"chi": chi_m, "cosa": "Scuola 🏫"},
                 "pomeriggio_leonardo": {"chi": chi_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l},
