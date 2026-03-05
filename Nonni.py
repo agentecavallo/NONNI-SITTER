@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v8.json" # Aggiornato per le nuove istruzioni di tragitto
+FILE_MEMORIA = "programma_v9.json" # Aggiornato per le regole di Eufonio e Sara
 OPZIONI_CHI = ["🟢 FACCIAMO NOI GENITORI", "🔴 TOCCA AI NONNI"]
 OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Scuola 🏫"]
 
@@ -71,7 +71,6 @@ with sch_nonni:
             if info["data_obj"] >= cal["oggi_obj"]:
                 imp = programma[id_sett][nome_g]
                 
-                # Titolo Giorno
                 if info["data_obj"] == cal["oggi_obj"]:
                     st.markdown(f"## 🌟 {info['data_testo'].upper()} (OGGI)")
                 else:
@@ -83,31 +82,33 @@ with sch_nonni:
                 else:
                     st.success(f"**☀️ MATTINA:** Scuola 🏫")
                 
-                # --- LOGICA POMERIGGIO CON ISTRUZIONI ESPLICITE SUL TRAGITTO ---
+                # --- LOGICA POMERIGGIO E FORMATTAZIONE ---
                 def formatta_blocco(nome, emoji, dati):
+                    b_ritorno = "🔴 (NONNI)" if "NONNI" in dati['chi_ritorno'] else "🟢 (GENITORI)"
+                    
                     if dati['cosa'] == "Scuola 🏫":
-                        bollino = "🔴 (NONNI)" if "NONNI" in dati['chi_ritorno'] else "🟢 (GENITORI)"
-                        return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Chi li riprende da Scuola:** {bollino}"
+                        orario_scuola = f" alle ore {dati['fine']}" if dati['fine'] else ""
+                        return f"**{emoji} {nome}:** Fine giornata a Scuola 🏫\n\n👉 **Chi riprende {nome} da Scuola{orario_scuola}:** {b_ritorno}"
+                    
+                    elif dati['cosa'] == "Eufonio 🎺":
+                        return (f"**{emoji} {nome}:** {dati['cosa']}\n\n"
+                                f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n"
+                                f"*(📍 Riprendere da EUFONIO 🎺 e portare a Casa 🏠)*")
+                    
                     else:
-                        b_andata = "🔴 (NONNI)" if "NONNI" in dati['chi_andata'] else "🟢 (GENITORI)"
-                        b_ritorno = "🔴 (NONNI)" if "NONNI" in dati['chi_ritorno'] else "🟢 (GENITORI)"
+                        b_andata = "🔴 (NONNI)" if "NONNI" in dati.get('chi_andata', '') else "🟢 (GENITORI)"
                         attivita = dati['cosa'].upper()
-                        
                         return (f"**{emoji} {nome}:** {dati['cosa']}\n\n"
                                 f"👉 **Andata (ore {dati['inizio']}):** {b_andata}\n"
                                 f"*(📍 Prendere a Scuola 🏫 e portare a {attivita})*\n\n"
                                 f"👉 **Ritorno (ore {dati['fine']}):** {b_ritorno}\n"
                                 f"*(📍 Riprendere da {attivita} e portare a Casa 🏠)*")
 
-                # Leonardo
-                t_l = formatta_blocco("LEONARDO", "👦", imp['pomeriggio_leonardo'])
-                coinvolge_nonni_l = "NONNI" in imp['pomeriggio_leonardo']['chi_andata'] or "NONNI" in imp['pomeriggio_leonardo']['chi_ritorno']
-                
-                # Sara
-                t_s = formatta_blocco("SARA", "👧", imp['pomeriggio_sara'])
-                coinvolge_nonni_s = "NONNI" in imp['pomeriggio_sara']['chi_andata'] or "NONNI" in imp['pomeriggio_sara']['chi_ritorno']
+                # Controlli su chi è coinvolto per decidere i colori dei box
+                coinvolge_nonni_l = "NONNI" in imp['pomeriggio_leonardo'].get('chi_andata','') or "NONNI" in imp['pomeriggio_leonardo']['chi_ritorno']
+                coinvolge_nonni_s = "NONNI" in imp['pomeriggio_sara'].get('chi_andata','') or "NONNI" in imp['pomeriggio_sara']['chi_ritorno']
 
-                # Controllo se possiamo unirli in un solo blocco
+                # Controllo blocco unito (non possibile se Leonardo fa Eufonio, perché Sara è forzata a Scuola)
                 identici = (
                     imp.get("sara_uguale", True) and
                     imp['pomeriggio_leonardo']['chi_andata'] == imp['pomeriggio_sara']['chi_andata'] and
@@ -122,9 +123,11 @@ with sch_nonni:
                     if coinvolge_nonni_l: st.error(t_ins)
                     else: st.success(t_ins)
                 else:
+                    t_l = formatta_blocco("LEONARDO", "👦", imp['pomeriggio_leonardo'])
                     if coinvolge_nonni_l: st.error(t_l)
                     else: st.success(t_l)
                     
+                    t_s = formatta_blocco("SARA", "👧", imp['pomeriggio_sara'])
                     if coinvolge_nonni_s: st.error(t_s)
                     else: st.success(t_s)
                 
@@ -158,10 +161,18 @@ with sch_genitori:
         idx_cosa_l = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
         cos_l = st.selectbox("Attività Leonardo?", OPZIONI_ATTIVITA, index=idx_cosa_l, key="l2")
         
+        # Regole speciali per Eufonio, Scuola e Ginnastica
         if cos_l == "Scuola 🏫":
             chi_and_l = OPZIONI_CHI[0]
             chi_rit_l = st.selectbox("🚕 Chi lo riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"]["chi_ritorno"]), key="l_rit")
             in_l, fi_l = "", ""
+        
+        elif cos_l == "Eufonio 🎺":
+            chi_and_l = OPZIONI_CHI[0] # L'andata è ininfluente
+            st.info("⏱️ Regola Eufonio attiva: **Bisogna solo andarlo a riprendere alle 18:00.**")
+            chi_rit_l = st.selectbox("🚕 Chi RIPRENDE Leonardo da Eufonio?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key="l_rit")
+            in_l, fi_l = "", "18:00"
+            
         else:
             c_and, c_rit = st.columns(2)
             chi_and_l = c_and.selectbox("🚕 Chi lo PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), key="l_and")
@@ -175,39 +186,51 @@ with sch_genitori:
                 in_l = c_in.text_input("Orario Inizio", dati_g["pomeriggio_leonardo"]["inizio"], key="l_in")
                 fi_l = c_fi.text_input("Orario Fine", dati_g["pomeriggio_leonardo"]["fine"], key="l_fi")
 
-        # --- CHECKBOX SARA ---
-        sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True))
-        
         # --- POMERIGGIO SARA ---
-        if not sara_uguale:
+        st.markdown("---")
+        
+        # Se Leonardo va a Eufonio, scatta la regola fissa per Sara
+        if cos_l == "Eufonio 🎺":
+            st.warning("⚠️ Poiché Leonardo ha Eufonio, Sara esce da Scuola alle **16:00** e non fa altre attività.")
             st.subheader("👧 Pomeriggio SARA")
-            idx_cosa_s = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
-            cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA, index=idx_cosa_s, key="s2")
+            sara_uguale = False
+            cos_s = "Scuola 🏫"
+            chi_and_s = OPZIONI_CHI[0]
+            chi_rit_s = st.selectbox("🚕 Chi riprende Sara da Scuola alle 16:00?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key="s_rit_eu")
+            in_s, fi_s = "", "16:00"
             
-            if cos_s == "Scuola 🏫":
-                chi_and_s = OPZIONI_CHI[0]
-                chi_rit_s = st.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key="s_rit")
-                in_s, fi_s = "", ""
-            else:
-                c_and_s, c_rit_s = st.columns(2)
-                chi_and_s = c_and_s.selectbox("🚕 Chi la PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key="s_and")
-                chi_rit_s = c_rit_s.selectbox("🚕 Chi la RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key="s_rit")
-                
-                if cos_s == "Ginnastica Artistica 🤸‍♀️":
-                    st.info("⏱️ Orari prefissati Sara: **16:30 - 17:30**")
-                    in_s, fi_s = "16:30", "17:30"
-                else:
-                    c_in_s, c_fi_s = st.columns(2)
-                    in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
-                    fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
         else:
-            chi_and_s, chi_rit_s, cos_s = chi_and_l, chi_rit_l, cos_l
-            if cos_s == "Ginnastica Artistica 🤸‍♀️":
-                in_s, fi_s = "16:30", "17:30"
-            elif cos_s == "Scuola 🏫":
-                in_s, fi_s = "", ""
+            sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True))
+            
+            if not sara_uguale:
+                st.subheader("👧 Pomeriggio SARA")
+                idx_cosa_s = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
+                cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA, index=idx_cosa_s, key="s2")
+                
+                if cos_s == "Scuola 🏫":
+                    chi_and_s = OPZIONI_CHI[0]
+                    chi_rit_s = st.selectbox("🚕 Chi la riprende da Scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key="s_rit")
+                    in_s, fi_s = "", ""
+                else:
+                    c_and_s, c_rit_s = st.columns(2)
+                    chi_and_s = c_and_s.selectbox("🚕 Chi la PORTA (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key="s_and")
+                    chi_rit_s = c_rit_s.selectbox("🚕 Chi la RIPRENDE (Ritorno)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key="s_rit")
+                    
+                    if cos_s == "Ginnastica Artistica 🤸‍♀️":
+                        st.info("⏱️ Orari prefissati Sara: **16:30 - 17:30**")
+                        in_s, fi_s = "16:30", "17:30"
+                    else:
+                        c_in_s, c_fi_s = st.columns(2)
+                        in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
+                        fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
             else:
-                in_s, fi_s = in_l, fi_l
+                chi_and_s, chi_rit_s, cos_s = chi_and_l, chi_rit_l, cos_l
+                if cos_s == "Ginnastica Artistica 🤸‍♀️":
+                    in_s, fi_s = "16:30", "17:30"
+                elif cos_s == "Scuola 🏫":
+                    in_s, fi_s = "", ""
+                else:
+                    in_s, fi_s = in_l, fi_l
 
         if st.button("💾 SALVA PROGRAMMA"):
             programma[sett_scelta][giorno_sel] = {
