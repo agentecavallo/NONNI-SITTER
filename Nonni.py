@@ -14,7 +14,7 @@ if "day" not in st.session_state:
 if "genitori_unlocked" not in st.session_state:
     st.session_state.genitori_unlocked = False
 
-FILE_MEMORIA = "programma_definitivo_v7.json" 
+FILE_MEMORIA = "programma_definitivo_v8.json" 
 OPZIONI_CHI = ["🟢 GENITORI", "🔴 NONNI"]
 
 OPZIONI_ATTIVITA_LEO = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Scuola 🏫"]
@@ -154,7 +154,6 @@ with sch_nonni:
                     dest = dati.get('dove_ritorno', 'Casa Nostra 🏠')
                     
                     if dati['cosa'] == "Scuola 🏫":
-                        # Testo richiesto modificato qui
                         if "NONNI" in dati['chi_ritorno']:
                             return f"**{emoji} {nome}:** Uscita scuola ore 16:00 🏫\n\n👉 **Ritiro:** {b_ritorno}\n📍 **Destinazione:** Portare a {dest}"
                         else:
@@ -236,7 +235,6 @@ with sch_genitori:
             else:
                 st.error("❌ Password errata!")
     else:
-        # Tasto per bloccare manualmente l'area e tornare alla richiesta password
         c_lock1, c_lock2 = st.columns([3, 1])
         c_lock1.title("⚙️ Programmazione")
         if c_lock2.button("🔒 Blocca"):
@@ -274,7 +272,7 @@ with sch_genitori:
 
         st.markdown("---")
 
-        # 3. PANNELLO INSERIMENTO DATI
+        # 3. PANNELLO INSERIMENTO DATI CON PULSANTI (RADIO)
         if not giorno_sel or (sett_scelta == "corrente" and not giorni_validi):
             st.warning("🎉 La settimana corrente è terminata! Clicca su PROSSIMA SETT. in alto.")
         else:
@@ -286,13 +284,13 @@ with sch_genitori:
             # --- MATTINA ---
             with st.container(border=True):
                 st.markdown("#### ☀️ MATTINA")
-                chi_m = st.selectbox("Chi li porta a scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["mattina"]["chi"]), key=f"m_chi_{k_id}")
+                chi_m = st.radio("Chi li porta a scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["mattina"]["chi"]), horizontal=True, key=f"m_chi_{k_id}")
             
             # --- POMERIGGIO LEONARDO ---
             with st.container(border=True):
                 st.markdown("#### 👦 POMERIGGIO LEONARDO")
                 idx_cosa_l = OPZIONI_ATTIVITA_LEO.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA_LEO else OPZIONI_ATTIVITA_LEO.index("Scuola 🏫")
-                cos_l = st.selectbox("Attività Leonardo?", OPZIONI_ATTIVITA_LEO, index=idx_cosa_l, key=f"l_cosa_{k_id}")
+                cos_l = st.radio("Attività Leonardo?", OPZIONI_ATTIVITA_LEO, index=idx_cosa_l, horizontal=True, key=f"l_cosa_{k_id}")
                 
                 opz_dest_l = ["Casa Nostra 🏠", "Casa Nonni 🏡", "Lavoro Mamma 💼"] if cos_l == "Scuola 🏫" else ["Casa Nostra 🏠", "Casa Nonni 🏡"]
                 dest_attuale_l = dati_g["pomeriggio_leonardo"].get("dove_ritorno", "Casa Nostra 🏠")
@@ -300,10 +298,10 @@ with sch_genitori:
 
                 if cos_l == "Scuola 🏫":
                     chi_and_l = OPZIONI_CHI[0]
-                    chi_rit_l = st.selectbox("🚕 Chi lo riprende da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"]["chi_ritorno"]), key=f"l_rit_{k_id}")
+                    chi_rit_l = st.radio("🚕 Chi lo riprende da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"]["chi_ritorno"]), horizontal=True, key=f"l_rit_{k_id}")
                     
                     if "NONNI" in chi_rit_l:
-                        dove_rit_l = st.selectbox("📍 Dove portarlo?", opz_dest_l, index=idx_dest_l, key=f"l_dest_{k_id}")
+                        dove_rit_l = st.radio("📍 Dove portarlo?", opz_dest_l, index=idx_dest_l, horizontal=True, key=f"l_dest_{k_id}")
                     else:
                         dove_rit_l = "Casa Nostra 🏠"
                     
@@ -314,10 +312,10 @@ with sch_genitori:
                     nome_att = cos_l.split()[0]
                     st.info(f"📍 Rimane a scuola, bisogna solo andarlo a riprendere da {nome_att}.")
                         
-                    chi_rit_l = st.selectbox(f"🚕 Chi riprende Leonardo?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key=f"l_rit_int_{k_id}")
+                    chi_rit_l = st.radio(f"🚕 Chi riprende Leonardo?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), horizontal=True, key=f"l_rit_int_{k_id}")
                     
                     if "NONNI" in chi_rit_l:
-                        dove_rit_l = st.selectbox("📍 Dove portarlo?", opz_dest_l, index=idx_dest_l, key=f"l_dest_int_{k_id}")
+                        dove_rit_l = st.radio("📍 Dove portarlo?", opz_dest_l, index=idx_dest_l, horizontal=True, key=f"l_dest_int_{k_id}")
                     else:
                         dove_rit_l = "Casa Nostra 🏠"
                         
@@ -329,11 +327,11 @@ with sch_genitori:
                         fi_l = st.text_input("Orario Ritiro (es. 18:00)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{k_id}")
                     
                 else:
-                    chi_and_l = st.selectbox("🚕 Chi lo porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), key=f"l_and_{k_id}")
-                    chi_rit_l = st.selectbox(f"🚕 Chi lo riprende da {cos_l}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), key=f"l_rit_est_{k_id}")
+                    chi_and_l = st.radio("🚕 Chi lo porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"l_and_{k_id}")
+                    chi_rit_l = st.radio(f"🚕 Chi lo riprende da {cos_l}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), horizontal=True, key=f"l_rit_est_{k_id}")
                     
                     if "NONNI" in chi_rit_l:
-                        dove_rit_l = st.selectbox("📍 Al ritorno, dove va?", opz_dest_l, index=idx_dest_l, key=f"l_dest_est_{k_id}")
+                        dove_rit_l = st.radio("📍 Al ritorno, dove va?", opz_dest_l, index=idx_dest_l, horizontal=True, key=f"l_dest_est_{k_id}")
                     else:
                         dove_rit_l = "Casa Nostra 🏠"
                     
@@ -359,10 +357,10 @@ with sch_genitori:
                     dest_attuale_s = dati_g["pomeriggio_sara"].get("dove_ritorno", "Casa Nostra 🏠")
                     idx_dest_s = opz_dest_s.index(dest_attuale_s) if dest_attuale_s in opz_dest_s else 0
                     
-                    chi_rit_s = st.selectbox("🚕 Chi riprende Sara da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key=f"s_rit_eu_{k_id}")
+                    chi_rit_s = st.radio("🚕 Chi riprende Sara da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), horizontal=True, key=f"s_rit_eu_{k_id}")
                     
                     if "NONNI" in chi_rit_s:
-                        dove_rit_s = st.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key=f"s_dest_eu_{k_id}")
+                        dove_rit_s = st.radio("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, horizontal=True, key=f"s_dest_eu_{k_id}")
                     else:
                         dove_rit_s = "Casa Nostra 🏠"
                         
@@ -374,7 +372,7 @@ with sch_genitori:
                     sara_uguale = False
                     
                     idx_cosa_s = OPZIONI_ATTIVITA_SARA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA_SARA else OPZIONI_ATTIVITA_SARA.index("Scuola 🏫")
-                    cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA_SARA, index=idx_cosa_s, key=f"s_cosa_{k_id}")
+                    cos_s = st.radio("Attività Sara?", OPZIONI_ATTIVITA_SARA, index=idx_cosa_s, horizontal=True, key=f"s_cosa_{k_id}")
                     
                     opz_dest_s = ["Casa Nostra 🏠", "Casa Nonni 🏡", "Lavoro Mamma 💼"] if cos_s == "Scuola 🏫" else ["Casa Nostra 🏠", "Casa Nonni 🏡"]
                     dest_attuale_s = dati_g["pomeriggio_sara"].get("dove_ritorno", "Casa Nostra 🏠")
@@ -382,19 +380,19 @@ with sch_genitori:
 
                     if cos_s == "Scuola 🏫":
                         chi_and_s = OPZIONI_CHI[0]
-                        chi_rit_s = st.selectbox("🚕 Chi la riprende da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key=f"s_rit_{k_id}")
+                        chi_rit_s = st.radio("🚕 Chi la riprende da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), horizontal=True, key=f"s_rit_{k_id}")
                         
                         if "NONNI" in chi_rit_s:
-                            dove_rit_s = st.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key=f"s_dest_{k_id}")
+                            dove_rit_s = st.radio("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, horizontal=True, key=f"s_dest_{k_id}")
                         else:
                             dove_rit_s = "Casa Nostra 🏠"
                         in_s, fi_s = "", ""
                     else:
-                        chi_and_s = st.selectbox("🚕 Chi la porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key=f"s_and_{k_id}")
-                        chi_rit_s = st.selectbox(f"🚕 Chi la riprende da {cos_s}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key=f"s_rit_est_{k_id}")
+                        chi_and_s = st.radio("🚕 Chi la porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"s_and_{k_id}")
+                        chi_rit_s = st.radio(f"🚕 Chi la riprende da {cos_s}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), horizontal=True, key=f"s_rit_est_{k_id}")
                         
                         if "NONNI" in chi_rit_s:
-                            dove_rit_s = st.selectbox("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, key=f"s_dest_est_{k_id}")
+                            dove_rit_s = st.radio("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, horizontal=True, key=f"s_dest_est_{k_id}")
                         else:
                             dove_rit_s = "Casa Nostra 🏠"
 
@@ -407,12 +405,12 @@ with sch_genitori:
                             fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key=f"s_fi_{k_id}")
                     
                 else:
-                    sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True), key=f"s_uguale_{k_id}")
+                    sara_uguale = st.toggle("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True), key=f"s_uguale_{k_id}")
                     st.markdown("#### 👧 POMERIGGIO SARA")
                     
                     if not sara_uguale:
                         idx_cosa_s = OPZIONI_ATTIVITA_SARA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA_SARA else OPZIONI_ATTIVITA_SARA.index("Scuola 🏫")
-                        cos_s = st.selectbox("Attività Sara?", OPZIONI_ATTIVITA_SARA, index=idx_cosa_s, key=f"s_cosa_alt_{k_id}")
+                        cos_s = st.radio("Attività Sara?", OPZIONI_ATTIVITA_SARA, index=idx_cosa_s, horizontal=True, key=f"s_cosa_alt_{k_id}")
                         
                         opz_dest_s = ["Casa Nostra 🏠", "Casa Nonni 🏡", "Lavoro Mamma 💼"] if cos_s == "Scuola 🏫" else ["Casa Nostra 🏠", "Casa Nonni 🏡"]
                         dest_attuale_s = dati_g["pomeriggio_sara"].get("dove_ritorno", "Casa Nostra 🏠")
@@ -420,19 +418,19 @@ with sch_genitori:
 
                         if cos_s == "Scuola 🏫":
                             chi_and_s = OPZIONI_CHI[0]
-                            chi_rit_s = st.selectbox("🚕 Chi la riprende da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), key=f"s_rit_alt_{k_id}")
+                            chi_rit_s = st.radio("🚕 Chi la riprende da scuola?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi_ritorno"]), horizontal=True, key=f"s_rit_alt_{k_id}")
                             
                             if "NONNI" in chi_rit_s:
-                                dove_rit_s = st.selectbox("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, key=f"s_dest_alt_{k_id}")
+                                dove_rit_s = st.radio("📍 Dove portarla?", opz_dest_s, index=idx_dest_s, horizontal=True, key=f"s_dest_alt_{k_id}")
                             else:
                                 dove_rit_s = "Casa Nostra 🏠"
                             in_s, fi_s = "", ""
                         else:
-                            chi_and_s = st.selectbox("🚕 Chi la porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), key=f"s_and_alt_{k_id}")
-                            chi_rit_s = st.selectbox(f"🚕 Chi la riprende da {cos_s}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), key=f"s_rit_est_alt_{k_id}")
+                            chi_and_s = st.radio("🚕 Chi la porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"s_and_alt_{k_id}")
+                            chi_rit_s = st.radio(f"🚕 Chi la riprende da {cos_s}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"].get("chi_ritorno", OPZIONI_CHI[0])), horizontal=True, key=f"s_rit_est_alt_{k_id}")
                             
                             if "NONNI" in chi_rit_s:
-                                dove_rit_s = st.selectbox("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, key=f"s_dest_est_alt_{k_id}")
+                                dove_rit_s = st.radio("📍 Al ritorno, dove va?", opz_dest_s, index=idx_dest_s, horizontal=True, key=f"s_dest_est_alt_{k_id}")
                             else:
                                 dove_rit_s = "Casa Nostra 🏠"
 
