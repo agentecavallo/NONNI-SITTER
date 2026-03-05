@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import os
 import requests
+import base64
 from datetime import datetime, timedelta
 
 # 1. IMPOSTAZIONI PAGINA E STATO NAVIGAZIONE
@@ -75,21 +76,36 @@ def crea_struttura_vuota():
         return sett
     return {"corrente": sett_vuota(), "prossima": sett_vuota()}
 
-# --- FUNZIONI JSONBIN ---
+# --- NUOVE FUNZIONI PER GITHUB ---
 def carica_programma():
     try:
-        api_key = st.secrets["JSONBIN_KEY"]
-        bin_id = st.secrets["JSONBIN_BIN_ID"]
-        url = f"https://api.jsonbin.io/v3/b/{bin_id}"
-        headers = {"X-Master-Key": api_key}
+        # Prende i dati dalle impostazioni segrete di Streamlit
+        token = st.secrets["GITHUB_TOKEN"]
+        repo = st.secrets["GITHUB_REPO"]
+        path = st.secrets["GITHUB_FILE_PATH"]
         
+        url = f"https://api.github.com/repos/{repo}/contents/{path}"
+        headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        # Chiede a GitHub di leggere il file
         req = requests.get(url, headers=headers)
         if req.status_code == 200:
-            dati = req.json().get("record")
+            dati_github = req.json()
+            # Salviamo lo 'sha' (l'ID univoco del file) che ci servirà poi per sovrascriverlo!
+            st.session_state.file_sha = dati_github['sha']
+            
+            # GitHub ci restituisce il file criptato in "Base64", quindi lo decodifichiamo
+            contenuto_decodificato = base64.b64decode(dati_github['content']).decode('utf-8')
+            dati = json.loads(contenuto_decodificato)
+            
             if dati and "corrente" in dati: 
                 return dati
         return crea_struttura_vuota()
     except Exception as e:
+        # Se GitHub fallisce per qualche motivo (es. non c'è internet o il file non esiste ancora)
         if os.path.exists(FILE_MEMORIA):
             try:
                 with open(FILE_MEMORIA, "r", encoding="utf-8") as file: return json.load(file)
@@ -99,19 +115,43 @@ def carica_programma():
 def salva_programma(dati):
     salvato_cloud = False
     try:
-        api_key = st.secrets["JSONBIN_KEY"]
-        bin_id = st.secrets["JSONBIN_BIN_ID"]
-        url = f"https://api.jsonbin.io/v3/b/{bin_id}"
+        token = st.secrets["GITHUB_TOKEN"]
+        repo = st.secrets["GITHUB_REPO"]
+        path = st.secrets["GITHUB_FILE_PATH"]
+        
+        url = f"https://api.github.com/repos/{repo}/contents/{path}"
         headers = {
-            "Content-Type": "application/json",
-            "X-Master-Key": api_key
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json"
         }
-        req = requests.put(url, json=dati, headers=headers)
-        if req.status_code == 200:
+        
+        # Trasformiamo i nostri dati in un testo JSON pulito
+        contenuto_json = json.dumps(dati, indent=4)
+        # Lo trasformiamo in Base64 (che è l'unica lingua che GitHub accetta per salvare i file)
+        contenuto_b64 = base64.b64encode(contenuto_json.encode('utf-8')).decode('utf-8')
+        
+        # Questo è il pacchetto che spediamo a GitHub
+        payload = {
+            "message": "Aggiornato programma Taxi Nipoti tramite App",
+            "content": contenuto_b64
+        }
+        
+        # Se il file esiste già su GitHub, serve il suo 'sha' per dirgli di sovrascriverlo
+        if "file_sha" in st.session_state:
+            payload["sha"] = st.session_state.file_sha
+            
+        # Invia il comando PUT per sovrascrivere/creare il file
+        req = requests.put(url, headers=headers, json=payload)
+        
+        if req.status_code in [200, 201]:
             salvato_cloud = True
-    except:
+            # Aggiorniamo lo sha con quello nuovo, nel caso l'utente salvi due volte di fila
+            st.session_state.file_sha = req.json()['content']['sha']
+            
+    except Exception as e:
         pass
     
+    # Lo salviamo comunque anche sul computer in locale come "Piano B" d'emergenza
     with open(FILE_MEMORIA, "w", encoding="utf-8") as file:
         json.dump(dati, file, indent=4)
         
@@ -325,7 +365,7 @@ with sch_genitori:
                         fi_l = "18:00"
                     else:
                         fi_l = st.text_input("Orario Ritiro (es. 18:00)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{k_id}")
-                    
+                
                 else:
                     chi_and_l = st.radio("🚕 Chi lo porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"l_and_{k_id}")
                     chi_rit_l = st.radio(f"🚕 Chi lo riprende da {cos_l}?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_ritorno", OPZIONI_CHI[0])), horizontal=True, key=f"l_rit_est_{k_id}")
@@ -403,7 +443,7 @@ with sch_genitori:
                             c_in_s, c_fi_s = st.columns(2)
                             in_s = c_in_s.text_input("Orario Inizio (S)", dati_g["pomeriggio_sara"]["inizio"], key=f"s_in_{k_id}")
                             fi_s = c_fi_s.text_input("Orario Fine (S)", dati_g["pomeriggio_sara"]["fine"], key=f"s_fi_{k_id}")
-                    
+                
                 else:
                     sara_uguale = st.toggle("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True), key=f"s_uguale_{k_id}")
                     st.markdown("#### 👧 POMERIGGIO SARA")
@@ -462,7 +502,7 @@ with sch_genitori:
                 }
                 salvato = salva_programma(programma)
                 if salvato:
-                    st.success(f"☁️ Salvato in Cloud: Programma di {giorno_sel.upper()} aggiornato!")
+                    st.success(f"☁️ Salvato su GitHub: Programma di {giorno_sel.upper()} aggiornato!")
                 else:
-                    st.warning(f"⚠️ Salvato in Locale (Configura JSONBIN per salvare sul Cloud).")
+                    st.warning(f"⚠️ Errore nel salvataggio su GitHub. Ho salvato il file solo in locale. Ricontrolla i Secrets!")
                 st.rerun()
