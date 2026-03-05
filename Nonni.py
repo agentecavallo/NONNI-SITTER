@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 # 1. IMPOSTAZIONI PAGINA
 st.set_page_config(page_title="Taxi Nipoti", page_icon="🚕", layout="centered")
 
-FILE_MEMORIA = "programma_v3.json"
+FILE_MEMORIA = "programma_v5.json" # Cambiato per evitare errori con il vecchio nome Leo
 OPZIONI_CHI = ["🔴 TOCCA AI NONNI", "🟢 FACCIAMO NOI GENITORI"]
-OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Casa 🏠"]
+OPZIONI_ATTIVITA = ["Ginnastica Artistica 🤸‍♀️", "Eufonio 🎺", "Yoga 🧘‍♂️", "Musica 🎵", "Scuola 🏫"]
 
 # --- FUNZIONE CALENDARIO ---
 def ottieni_calendario():
@@ -37,8 +37,8 @@ def crea_struttura_vuota():
         return {g: {
             "mattina": {"chi": "🔴 TOCCA AI NONNI", "cosa": "Scuola 🏫"},
             "sara_uguale": True,
-            "pomeriggio_leo": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Casa 🏠", "inizio": "16:30", "fine": "18:00"},
-            "pomeriggio_sara": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Casa 🏠", "inizio": "16:30", "fine": "18:00"}
+            "pomeriggio_leonardo": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Scuola 🏫", "inizio": "", "fine": ""},
+            "pomeriggio_sara": {"chi": "🟢 FACCIAMO NOI GENITORI", "cosa": "Scuola 🏫", "inizio": "", "fine": ""}
         } for g in ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]}
     return {"corrente": sett_vuota(), "prossima": sett_vuota()}
 
@@ -82,24 +82,30 @@ with sch_nonni:
                 else:
                     st.markdown(f"### 📅 {info['data_testo']}")
                 
-                # --- LOGICA MATTINA MODIFICATA ---
+                # --- LOGICA MATTINA ---
                 if "NONNI" in imp['mattina']['chi']:
-                    # Se tocca ai NONNI (ROSSO), mostra l'orario
                     st.error(f"**☀️ MATTINA:** Scuola 🏫\n\n👉 *Ore 7:00 vi aspettiamo a casa!*")
                 else:
-                    # Se tocca ai GENITORI (VERDE), nasconde la scritta dell'orario
                     st.success(f"**☀️ MATTINA:** Scuola 🏫")
                 
-                # --- POMERIGGIO ---
+                # --- LOGICA POMERIGGIO ---
                 if imp.get("sara_uguale", True):
-                    t_ins = f"**👦👧 LEO E SARA ({imp['pomeriggio_leo']['inizio']}-{imp['pomeriggio_leo']['fine']}):**\n\n{imp['pomeriggio_leo']['cosa']}"
-                    if "NONNI" in imp['pomeriggio_leo']['chi']: st.error(t_ins)
+                    # Nasconde l'orario se è Scuola
+                    orari_str = "" if imp['pomeriggio_leonardo']['cosa'] == "Scuola 🏫" else f" ({imp['pomeriggio_leonardo']['inizio']}-{imp['pomeriggio_leonardo']['fine']})"
+                    t_ins = f"**👦👧 LEONARDO E SARA{orari_str}:**\n\n{imp['pomeriggio_leonardo']['cosa']}"
+                    
+                    if "NONNI" in imp['pomeriggio_leonardo']['chi']: st.error(t_ins)
                     else: st.success(t_ins)
                 else:
-                    t_l = f"**👦 LEO ({imp['pomeriggio_leo']['inizio']}-{imp['pomeriggio_leo']['fine']}):** {imp['pomeriggio_leo']['cosa']}"
-                    t_s = f"**👧 SARA ({imp['pomeriggio_sara']['inizio']}-{imp['pomeriggio_sara']['fine']}):** {imp['pomeriggio_sara']['cosa']}"
+                    # Nasconde l'orario se è Scuola per Leonardo
+                    orari_l = "" if imp['pomeriggio_leonardo']['cosa'] == "Scuola 🏫" else f" ({imp['pomeriggio_leonardo']['inizio']}-{imp['pomeriggio_leonardo']['fine']})"
+                    t_l = f"**👦 LEONARDO{orari_l}:** {imp['pomeriggio_leonardo']['cosa']}"
                     
-                    if "NONNI" in imp['pomeriggio_leo']['chi']: st.error(t_l)
+                    # Nasconde l'orario se è Scuola per Sara
+                    orari_s = "" if imp['pomeriggio_sara']['cosa'] == "Scuola 🏫" else f" ({imp['pomeriggio_sara']['inizio']}-{imp['pomeriggio_sara']['fine']})"
+                    t_s = f"**👧 SARA{orari_s}:** {imp['pomeriggio_sara']['cosa']}"
+                    
+                    if "NONNI" in imp['pomeriggio_leonardo']['chi']: st.error(t_l)
                     else: st.success(t_l)
                     
                     if "NONNI" in imp['pomeriggio_sara']['chi']: st.error(t_s)
@@ -131,34 +137,43 @@ with sch_genitori:
         
         st.markdown("---")
         
-        # Gestione LEO
-        st.subheader("👦 Pomeriggio LEO")
+        # Gestione LEONARDO
+        st.subheader("👦 Pomeriggio LEONARDO")
         c3, c4 = st.columns(2)
-        chi_l = c3.selectbox("Chi?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leo"]["chi"]), key="l1")
+        chi_l = c3.selectbox("Chi?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"]["chi"]), key="l1")
         
-        # Controllo se l'attività esiste ancora nella lista (per evitare errori se cambi la lista OPZIONI_ATTIVITA)
-        idx_cosa_l = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leo"]["cosa"]) if dati_g["pomeriggio_leo"]["cosa"] in OPZIONI_ATTIVITA else 0
+        idx_cosa_l = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_leonardo"]["cosa"]) if dati_g["pomeriggio_leonardo"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
         cos_l = c4.selectbox("Attività?", OPZIONI_ATTIVITA, index=idx_cosa_l, key="l2")
         
-        c5, c6 = st.columns(2)
-        in_l = c5.text_input("Inizio", dati_g["pomeriggio_leo"]["inizio"], key="l_in")
-        fi_l = c6.text_input("Fine", dati_g["pomeriggio_leo"]["fine"], key="l_fi")
+        # Logica di visualizzazione orari Leonardo
+        if cos_l != "Scuola 🏫":
+            c5, c6 = st.columns(2)
+            in_l = c5.text_input("Inizio", dati_g["pomeriggio_leonardo"]["inizio"], key="l_in")
+            fi_l = c6.text_input("Fine", dati_g["pomeriggio_leonardo"]["fine"], key="l_fi")
+        else:
+            in_l = ""
+            fi_l = ""
 
-        # Checkbox SARA uguale a LEO
-        sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leo", value=dati_g.get("sara_uguale", True))
+        # Checkbox SARA uguale a LEONARDO
+        sara_uguale = st.checkbox("✅ Sara fa lo stesso di Leonardo", value=dati_g.get("sara_uguale", True))
         
-        # Gestione SARA (se diversa da LEO)
+        # Gestione SARA (se diversa da LEONARDO)
         if not sara_uguale:
             st.subheader("👧 Pomeriggio SARA")
             c7, c8 = st.columns(2)
             chi_s = c7.selectbox("Chi?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_sara"]["chi"]), key="s1")
             
-            idx_cosa_s = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else 0
+            idx_cosa_s = OPZIONI_ATTIVITA.index(dati_g["pomeriggio_sara"]["cosa"]) if dati_g["pomeriggio_sara"]["cosa"] in OPZIONI_ATTIVITA else OPZIONI_ATTIVITA.index("Scuola 🏫")
             cos_s = c8.selectbox("Attività?", OPZIONI_ATTIVITA, index=idx_cosa_s, key="s2")
             
-            c9, c10 = st.columns(2)
-            in_s = c9.text_input("Inizio Sara", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
-            fi_s = c10.text_input("Fine Sara", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
+            # Logica di visualizzazione orari Sara
+            if cos_s != "Scuola 🏫":
+                c9, c10 = st.columns(2)
+                in_s = c9.text_input("Inizio Sara", dati_g["pomeriggio_sara"]["inizio"], key="s_in")
+                fi_s = c10.text_input("Fine Sara", dati_g["pomeriggio_sara"]["fine"], key="s_fi")
+            else:
+                in_s = ""
+                fi_s = ""
         else:
             # Se uguale, i dati verranno sovrascritti al salvataggio
             chi_s, cos_s, in_s, fi_s = chi_l, cos_l, in_l, fi_l
@@ -167,7 +182,7 @@ with sch_genitori:
             # Aggiornamento dizionario programma
             programma[sett_scelta][giorno_sel] = {
                 "mattina": {"chi": chi_m, "cosa": "Scuola 🏫"},
-                "pomeriggio_leo": {"chi": chi_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l},
+                "pomeriggio_leonardo": {"chi": chi_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l},
                 "sara_uguale": sara_uguale,
                 "pomeriggio_sara": {"chi": chi_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s}
             }
