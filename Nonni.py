@@ -79,7 +79,6 @@ def crea_struttura_vuota():
 # --- NUOVE FUNZIONI PER GITHUB ---
 def carica_programma():
     try:
-        # Prende i dati dalle impostazioni segrete di Streamlit
         token = st.secrets["GITHUB_TOKEN"]
         repo = st.secrets["GITHUB_REPO"]
         path = st.secrets["GITHUB_FILE_PATH"]
@@ -90,14 +89,11 @@ def carica_programma():
             "Accept": "application/vnd.github.v3+json"
         }
         
-        # Chiede a GitHub di leggere il file
         req = requests.get(url, headers=headers)
         if req.status_code == 200:
             dati_github = req.json()
-            # Salviamo lo 'sha' (l'ID univoco del file) che ci servirà poi per sovrascriverlo!
             st.session_state.file_sha = dati_github['sha']
             
-            # GitHub ci restituisce il file criptato in "Base64", quindi lo decodifichiamo
             contenuto_decodificato = base64.b64decode(dati_github['content']).decode('utf-8')
             dati = json.loads(contenuto_decodificato)
             
@@ -105,7 +101,6 @@ def carica_programma():
                 return dati
         return crea_struttura_vuota()
     except Exception as e:
-        # Se GitHub fallisce per qualche motivo (es. non c'è internet o il file non esiste ancora)
         if os.path.exists(FILE_MEMORIA):
             try:
                 with open(FILE_MEMORIA, "r", encoding="utf-8") as file: return json.load(file)
@@ -125,33 +120,26 @@ def salva_programma(dati):
             "Accept": "application/vnd.github.v3+json"
         }
         
-        # Trasformiamo i nostri dati in un testo JSON pulito
         contenuto_json = json.dumps(dati, indent=4)
-        # Lo trasformiamo in Base64 (che è l'unica lingua che GitHub accetta per salvare i file)
         contenuto_b64 = base64.b64encode(contenuto_json.encode('utf-8')).decode('utf-8')
         
-        # Questo è il pacchetto che spediamo a GitHub
         payload = {
             "message": "Aggiornato programma Taxi Nipoti tramite App",
             "content": contenuto_b64
         }
         
-        # Se il file esiste già su GitHub, serve il suo 'sha' per dirgli di sovrascriverlo
         if "file_sha" in st.session_state:
             payload["sha"] = st.session_state.file_sha
             
-        # Invia il comando PUT per sovrascrivere/creare il file
         req = requests.put(url, headers=headers, json=payload)
         
         if req.status_code in [200, 201]:
             salvato_cloud = True
-            # Aggiorniamo lo sha con quello nuovo, nel caso l'utente salvi due volte di fila
             st.session_state.file_sha = req.json()['content']['sha']
             
     except Exception as e:
         pass
     
-    # Lo salviamo comunque anche sul computer in locale come "Piano B" d'emergenza
     with open(FILE_MEMORIA, "w", encoding="utf-8") as file:
         json.dump(dati, file, indent=4)
         
@@ -362,7 +350,7 @@ with sch_genitori:
                     in_l = ""
                     if cos_l == "Eufonio 🎺":
                         st.markdown("*L'orario di fine è fissato alle 18:30*")
-                        fi_l = "18:00"
+                        fi_l = "18:30"   # <-- MODIFICA EFFETTUATA QUI
                     else:
                         fi_l = st.text_input("Orario Ritiro (es. 18:30)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{k_id}")
                 
