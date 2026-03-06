@@ -49,7 +49,7 @@ def crea_struttura_vuota():
                 sett[g] = {
                     "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
                     "sara_uguale": False,
-                    "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Eufonio 🎺", "inizio": "", "fine": "18:00", "dove_ritorno": "Casa Nostra 🏠"},
+                    "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Eufonio 🎺", "inizio": "", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
                     "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"}
                 }
             elif g == "Martedì" or g == "Venerdì":
