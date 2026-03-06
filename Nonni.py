@@ -361,10 +361,10 @@ with sch_genitori:
                         
                     in_l = ""
                     if cos_l == "Eufonio 🎺":
-                        st.markdown("*L'orario di fine è fissato alle 18:00*")
+                        st.markdown("*L'orario di fine è fissato alle 18:30*")
                         fi_l = "18:00"
                     else:
-                        fi_l = st.text_input("Orario Ritiro (es. 18:00)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{k_id}")
+                        fi_l = st.text_input("Orario Ritiro (es. 18:30)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{k_id}")
                 
                 else:
                     chi_and_l = st.radio("🚕 Chi lo porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"l_and_{k_id}")
