@@ -253,10 +253,10 @@ with sch_nonni:
                     else: st.success(t_s)
                 
                 # --- CAMPO NOTE PER I NONNI ---
-                # Usiamo .get("note", "") per evitare errori sui vecchi file salvati senza il campo note
                 nota_giorno = imp.get("note", "").strip()
                 if nota_giorno:
-                    st.warning(f"## ⚠️ **NOTA PER I NONNI:**\n### {nota_giorno}", icon="⚠️")
+                    # Ho cambiato st.warning in st.error per renderlo ROSSO
+                    st.error(f"## ⚠️ **NOTA PER I NONNI:**\n### {nota_giorno}", icon="⚠️")
                 
                 st.markdown("---")
 
@@ -507,7 +507,7 @@ with sch_genitori:
                     "pomeriggio_leonardo": {"chi_andata": chi_and_l, "chi_ritorno": chi_rit_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l, "dove_ritorno": dove_rit_l},
                     "sara_uguale": sara_uguale,
                     "pomeriggio_sara": {"chi_andata": chi_and_s, "chi_ritorno": chi_rit_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s, "dove_ritorno": dove_rit_s},
-                    "note": nota_input  # <-- Salvataggio della nota aggiunto qui
+                    "note": nota_input
                 }
                 salvato = salva_programma(programma)
                 if salvato:
