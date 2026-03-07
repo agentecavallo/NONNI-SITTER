@@ -269,6 +269,15 @@ with sch_genitori:
             st.session_state.genitori_unlocked = False
             st.rerun()
         
+        # --- NUOVO TASTO WHATSAPP PER I GRUPPI ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Il messaggio è già codificato per internet, equivale a "Ciao Nonni! abbiamo modificato la programmazione settimanale, grazie ❤️"
+        testo_wa = "Ciao%20Nonni%21%20abbiamo%20modificato%20la%20programmazione%20settimanale%2C%20grazie%20%E2%9D%A4%EF%B8%8F"
+        # Usando questo link, ti si aprirà WhatsApp sul telefono chiedendoti "A chi vuoi inviare?" e potrai selezionare il gruppo
+        st.link_button("📲 Invia avviso WhatsApp al Gruppo", f"https://wa.me/?text={testo_wa}", use_container_width=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        # -----------------------------------------
+        
         # 1. BOTTONI SETTIMANA
         cw1, cw2 = st.columns(2)
         if cw1.button("📅 QUESTA SETT.", use_container_width=True, type="primary" if st.session_state.week == "corrente" else "secondary"):
@@ -350,7 +359,7 @@ with sch_genitori:
                     in_l = ""
                     if cos_l == "Eufonio 🎺":
                         st.markdown("*L'orario di fine è fissato alle 18:30*")
-                        fi_l = "18:30"   # <-- MODIFICA EFFETTUATA QUI
+                        fi_l = "18:30"   
                     else:
                         fi_l = st.text_input("Orario Ritiro (es. 18:30)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{k_id}")
                 
