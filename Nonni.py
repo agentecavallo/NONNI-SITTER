@@ -50,28 +50,32 @@ def crea_struttura_vuota():
                     "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
                     "sara_uguale": False,
                     "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Eufonio 🎺", "inizio": "", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
-                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"}
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"},
+                    "note": ""
                 }
             elif g == "Martedì" or g == "Venerdì":
                 sett[g] = {
                     "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
                     "sara_uguale": True,
                     "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Ginnastica Artistica 🤸‍♀️", "inizio": "17:00", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
-                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Ginnastica Artistica 🤸‍♀️", "inizio": "16:30", "fine": "17:30", "dove_ritorno": "Casa Nostra 🏠"}
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Ginnastica Artistica 🤸‍♀️", "inizio": "16:30", "fine": "17:30", "dove_ritorno": "Casa Nostra 🏠"},
+                    "note": ""
                 }
             elif g == "Mercoledì":
                 sett[g] = {
                     "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
                     "sara_uguale": False,
                     "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Yoga 🧘‍♂️", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
-                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"}
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"},
+                    "note": ""
                 }
             else: 
                 sett[g] = {
                     "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
                     "sara_uguale": True,
                     "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
-                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"}
+                    "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
+                    "note": ""
                 }
         return sett
     return {"corrente": sett_vuota(), "prossima": sett_vuota()}
@@ -248,6 +252,12 @@ with sch_nonni:
                     elif colore_s == "orange": st.warning(t_s)
                     else: st.success(t_s)
                 
+                # --- CAMPO NOTE PER I NONNI ---
+                # Usiamo .get("note", "") per evitare errori sui vecchi file salvati senza il campo note
+                nota_giorno = imp.get("note", "").strip()
+                if nota_giorno:
+                    st.warning(f"## ⚠️ **NOTA PER I NONNI:**\n### {nota_giorno}", icon="⚠️")
+                
                 st.markdown("---")
 
 # --- PANNELLO GENITORI (PROTETTO DA PASSWORD) ---
@@ -269,14 +279,10 @@ with sch_genitori:
             st.session_state.genitori_unlocked = False
             st.rerun()
         
-        # --- NUOVO TASTO WHATSAPP PER I GRUPPI ---
         st.markdown("<br>", unsafe_allow_html=True)
-        # Il messaggio è già codificato per internet, equivale a "Ciao Nonni! abbiamo modificato la programmazione settimanale, grazie ❤️"
         testo_wa = "Ciao%20Nonni%21%20abbiamo%20modificato%20la%20programmazione%20settimanale%2C%20grazie%20%E2%9D%A4%EF%B8%8F"
-        # Usando questo link, ti si aprirà WhatsApp sul telefono chiedendoti "A chi vuoi inviare?" e potrai selezionare il gruppo
-        st.link_button("📲 Invia avviso WhatsApp al Gruppo Famiglia", f"https://wa.me/?text={testo_wa}", use_container_width=True)
+        st.link_button("📲 Invia avviso WhatsApp al Gruppo", f"https://wa.me/?text={testo_wa}", use_container_width=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        # -----------------------------------------
         
         # 1. BOTTONI SETTIMANA
         cw1, cw2 = st.columns(2)
@@ -488,6 +494,11 @@ with sch_genitori:
                         else:
                             in_s, fi_s = in_l, fi_l
 
+            # --- NUOVO CAMPO INSERIMENTO NOTE ---
+            with st.container(border=True):
+                st.markdown("#### 📝 NOTE PER I NONNI")
+                nota_input = st.text_area("C'è qualcosa di importante da segnalare per oggi? (Lascia vuoto se non c'è nulla)", dati_g.get("note", ""), key=f"note_{k_id}")
+
             # PULSANTONE DI SALVATAGGIO
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("💾 SALVA PROGRAMMA", type="primary", use_container_width=True):
@@ -495,7 +506,8 @@ with sch_genitori:
                     "mattina": {"chi": chi_m, "cosa": "Scuola 🏫"},
                     "pomeriggio_leonardo": {"chi_andata": chi_and_l, "chi_ritorno": chi_rit_l, "cosa": cos_l, "inizio": in_l, "fine": fi_l, "dove_ritorno": dove_rit_l},
                     "sara_uguale": sara_uguale,
-                    "pomeriggio_sara": {"chi_andata": chi_and_s, "chi_ritorno": chi_rit_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s, "dove_ritorno": dove_rit_s}
+                    "pomeriggio_sara": {"chi_andata": chi_and_s, "chi_ritorno": chi_rit_s, "cosa": cos_s, "inizio": in_s, "fine": fi_s, "dove_ritorno": dove_rit_s},
+                    "note": nota_input  # <-- Salvataggio della nota aggiunto qui
                 }
                 salvato = salva_programma(programma)
                 if salvato:
