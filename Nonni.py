@@ -274,7 +274,7 @@ with sch_genitori:
         # Il messaggio è già codificato per internet, equivale a "Ciao Nonni! abbiamo modificato la programmazione settimanale, grazie ❤️"
         testo_wa = "Ciao%20Nonni%21%20abbiamo%20modificato%20la%20programmazione%20settimanale%2C%20grazie%20%E2%9D%A4%EF%B8%8F"
         # Usando questo link, ti si aprirà WhatsApp sul telefono chiedendoti "A chi vuoi inviare?" e potrai selezionare il gruppo
-        st.link_button("📲 Invia avviso WhatsApp al Gruppo", f"https://wa.me/?text={testo_wa}", use_container_width=True)
+        st.link_button("📲 Invia avviso WhatsApp al Gruppo Famiglia", f"https://wa.me/?text={testo_wa}", use_container_width=True)
         st.markdown("<br>", unsafe_allow_html=True)
         # -----------------------------------------
         
