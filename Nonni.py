@@ -58,7 +58,8 @@ def ottieni_template_giorno(nome_giorno):
         return {
             "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
             "sara_uguale": False,
-            "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Yoga 🧘‍♂️", "inizio": "", "fine": "", "dove_ritorno": "Casa Nostra 🏠"},
+            # IMPOSTATO ORARIO FINE YOGA A 18:30 DI DEFAULT
+            "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Yoga 🧘‍♂️", "inizio": "", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
             "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"},
             "note": ""
         }
@@ -76,7 +77,7 @@ def carica_programma():
     try:
         token = st.secrets["GITHUB_TOKEN"]
         repo = st.secrets["GITHUB_REPO"]
-        path = st.secrets["GITHUB_FILE_PATH"].replace("v8", "v9") # Assicuriamoci che usi il nuovo nome se lo hai nei secrets
+        path = st.secrets["GITHUB_FILE_PATH"].replace("v8", "v9") # Assicuriamoci che usi il nuovo nome
         
         url = f"https://api.github.com/repos/{repo}/contents/{path}"
         headers = {
@@ -157,6 +158,7 @@ with sch_nonni:
     
     giorni_da_mostrare = [d for d in sett_corrente + sett_prossima if d >= oggi]
     
+    # CORRETTO IL "NON" IN "NOT"
     if not giorni_da_mostrare:
         st.info("Nessuna programmazione per i prossimi giorni.")
         
@@ -361,11 +363,9 @@ with sch_genitori:
                         dove_rit_l = "Casa Nostra 🏠"
                         
                     in_l = ""
-                    if cos_l == "Eufonio 🎺":
-                        st.markdown("*L'orario di fine è fissato alle 18:30*")
-                        fi_l = "18:30"   
-                    else:
-                        fi_l = st.text_input("Orario Ritiro (es. 18:30)", dati_g["pomeriggio_leonardo"]["fine"], key=f"l_fi_int_{giorno_sel_str}")
+                    # FISSATO ORARIO 18:30 SIA PER EUFONIO CHE PER YOGA
+                    st.markdown(f"*L'orario di fine per {nome_att} è fissato alle 18:30*")
+                    fi_l = "18:30"   
                 
                 else:
                     chi_and_l = st.radio("🚕 Chi lo porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"l_and_{giorno_sel_str}")
