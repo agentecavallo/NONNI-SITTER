@@ -42,7 +42,8 @@ def ottieni_template_giorno(nome_giorno):
         return {
             "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
             "sara_uguale": False,
-            "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Eufonio 🎺", "inizio": "", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
+            # MODIFICATO EUFONIO A 18:00
+            "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Eufonio 🎺", "inizio": "", "fine": "18:00", "dove_ritorno": "Casa Nostra 🏠"},
             "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"},
             "note": ""
         }
@@ -58,7 +59,6 @@ def ottieni_template_giorno(nome_giorno):
         return {
             "mattina": {"chi": chi_def, "cosa": "Scuola 🏫"},
             "sara_uguale": False,
-            # IMPOSTATO ORARIO FINE YOGA A 18:30 DI DEFAULT
             "pomeriggio_leonardo": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Yoga 🧘‍♂️", "inizio": "", "fine": "18:30", "dove_ritorno": "Casa Nostra 🏠"},
             "pomeriggio_sara": {"chi_andata": chi_def, "chi_ritorno": chi_def, "cosa": "Scuola 🏫", "inizio": "", "fine": "16:00", "dove_ritorno": "Casa Nostra 🏠"},
             "note": ""
@@ -158,7 +158,6 @@ with sch_nonni:
     
     giorni_da_mostrare = [d for d in sett_corrente + sett_prossima if d >= oggi]
     
-    # CORRETTO IL "NON" IN "NOT"
     if not giorni_da_mostrare:
         st.info("Nessuna programmazione per i prossimi giorni.")
         
@@ -363,9 +362,13 @@ with sch_genitori:
                         dove_rit_l = "Casa Nostra 🏠"
                         
                     in_l = ""
-                    # FISSATO ORARIO 18:30 SIA PER EUFONIO CHE PER YOGA
-                    st.markdown(f"*L'orario di fine per {nome_att} è fissato alle 18:30*")
-                    fi_l = "18:30"   
+                    # SEPARATO ORARIO EUFONIO (18:00) E YOGA (18:30)
+                    if cos_l == "Eufonio 🎺":
+                        st.markdown(f"*L'orario di fine per {nome_att} è fissato alle 18:00*")
+                        fi_l = "18:00"
+                    else:
+                        st.markdown(f"*L'orario di fine per {nome_att} è fissato alle 18:30*")
+                        fi_l = "18:30"   
                 
                 else:
                     chi_and_l = st.radio("🚕 Chi lo porta (Andata)?", OPZIONI_CHI, index=OPZIONI_CHI.index(dati_g["pomeriggio_leonardo"].get("chi_andata", OPZIONI_CHI[0])), horizontal=True, key=f"l_and_{giorno_sel_str}")
