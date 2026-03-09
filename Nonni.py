@@ -157,7 +157,7 @@ with sch_nonni:
     
     giorni_da_mostrare = [d for d in sett_corrente + sett_prossima if d >= oggi]
     
-    if non giorni_da_mostrare:
+    if not giorni_da_mostrare:
         st.info("Nessuna programmazione per i prossimi giorni.")
         
     for d in giorni_da_mostrare:
