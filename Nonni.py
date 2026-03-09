@@ -295,6 +295,23 @@ with sch_genitori:
             
         st.markdown("<br>", unsafe_allow_html=True)
         
+        # --- TASTO MAGICO PER IL LUNEDÌ ---
+        with st.expander("🛠️ Strumenti di Manutenzione (Clicca qui il Lunedì)"):
+            st.warning("Hai programmato gli orari nel weekend? Clicca questo tasto il Lunedì per spostare tutto nella settimana corretta!")
+            if st.button("🔄 Travasa 'Prossima' in 'Questa Settimana'", use_container_width=True):
+                # 1. Copia i dati dalla prossima alla corrente
+                programma["corrente"] = programma["prossima"]
+                # 2. Ricrea una struttura vuota e pulita per la nuova "prossima"
+                struttura_nuova = crea_struttura_vuota()
+                programma["prossima"] = struttura_nuova["prossima"]
+                # 3. Salva su GitHub
+                salva_programma(programma)
+                # 4. Ricarica la pagina mostrando la settimana corrente
+                st.session_state.week = "corrente"
+                st.rerun()
+                
+        st.markdown("<br>", unsafe_allow_html=True)
+        
         # 2. BARRA DEI GIORNI A PULSANTI
         sett_scelta = st.session_state.week
         giorni_dict = cal[sett_scelta]
